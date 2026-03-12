@@ -1,10 +1,10 @@
 "use client";
 
 import { useParams, useRouter } from "next/navigation";
-import { useEffect } from "react";
+import { useEffect, useMemo } from "react";
 import Link from "next/link";
 import { useAuth } from "@/hooks/useAuth";
-import { useLocalPunch } from "@/hooks/useLocalPunch";
+import { useWorkDay } from "@/hooks/useWorkDay";
 import { useMonthReport } from "@/hooks/useMonthReport";
 import { ReportMonth } from "@/components/ReportMonth";
 import { CloseMonthButton } from "@/components/CloseMonthButton";
@@ -20,7 +20,18 @@ export default function MesPage() {
     const d = new Date();
     return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
   })();
-  const { isOpen } = useLocalPunch(user?.uid, today);
+  const { workDay } = useWorkDay(user?.uid, today);
+  const isOpen = useMemo(() => {
+    const punches = workDay?.punches ?? [];
+    const last = punches[punches.length - 1];
+    return !!(
+      workDay &&
+      punches.length > 0 &&
+      last &&
+      (last.exit === null || last.exit === undefined) &&
+      workDay.date === today
+    );
+  }, [workDay, today]);
   const {
     workDays,
     totalMinutes,

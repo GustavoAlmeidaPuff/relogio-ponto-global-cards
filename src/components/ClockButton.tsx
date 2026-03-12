@@ -1,63 +1,67 @@
 "use client";
 
 import { useState } from "react";
-import { punchIn, punchOut } from "@/lib/firestore";
+
+const BUTTON_TIMEOUT_MS = 12_000;
+
+function withTimeout<T>(p: Promise<T>, ms: number): Promise<T> {
+  return Promise.race([
+    p,
+    new Promise<T>((_, reject) =>
+      setTimeout(() => reject(new Error("timeout")), ms)
+    ),
+  ]);
+}
 
 interface ClockButtonProps {
-  userId: string;
   isOpen: boolean;
-  today: string;
-  /** Ao pausar, passa o horário de entrada (ms) para o contador acumular o intervalo. */
   openDetails: { entry: { toMillis: () => number } } | null;
-  onRegisterEntry: () => void;
-  onRegisterExit: (entryAt?: number) => void;
-  onRefresh?: () => void;
+  onRegisterEntry: () => void | Promise<void>;
+  onRegisterExit: () => void | Promise<void>;
 }
 
 /**
- * Botão de entrada/saída: atualiza a UI na hora (localStorage).
- * Tenta sincronizar com Firestore em segundo plano, sem bloquear.
+ * Botão de entrada/saída: chama Firestore e nunca fica preso em "..." por tempo indefinido.
  */
 export function ClockButton({
-  userId,
   isOpen,
-  today,
   openDetails,
   onRegisterEntry,
   onRegisterExit,
-  onRefresh,
 }: ClockButtonProps) {
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
 
-  function handleEntry() {
+  async function handleEntry() {
     setMessage(null);
     setLoading(true);
-    onRegisterEntry();
-    setMessage({ type: "success", text: "Entrada registrada." });
-    setLoading(false);
-    onRefresh?.();
-
-    // Sincroniza com Firestore em background (não bloqueia)
-    punchIn(userId, today)
-      .then(() => onRefresh?.())
-      .catch(() => {
-        // Silencioso: já registramos localmente
+    try {
+      await withTimeout(Promise.resolve(onRegisterEntry()), BUTTON_TIMEOUT_MS);
+      setMessage({ type: "success", text: "Entrada registrada." });
+    } catch {
+      setMessage({
+        type: "error",
+        text: "Demorou demais ou falhou. Verifique a conexão e tente de novo.",
       });
+    } finally {
+      setLoading(false);
+    }
   }
 
-  function handleExit() {
+  async function handleExit() {
     setMessage(null);
     setLoading(true);
-    const entryAt = isOpen && openDetails ? openDetails.entry.toMillis() : undefined;
-    onRegisterExit(entryAt);
-    setMessage({ type: "success", text: "Pausado." });
-    setLoading(false);
-    onRefresh?.();
-
-    punchOut(userId)
-      .then(() => onRefresh?.())
-      .catch(() => {});
+    try {
+      await withTimeout(Promise.resolve(onRegisterExit()), BUTTON_TIMEOUT_MS);
+      setMessage({ type: "success", text: "Pausado." });
+    } catch {
+      setMessage({
+        type: "error",
+        text: "Demorou demais ou falhou. Verifique a conexão e tente de novo.",
+      });
+    } finally {
+      setLoading(false);
+    }
   }
 
   function handleClick() {

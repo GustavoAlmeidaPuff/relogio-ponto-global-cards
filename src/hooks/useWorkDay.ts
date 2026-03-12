@@ -1,33 +1,30 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
-import { getWorkDay } from "@/lib/firestore";
+import { useState, useEffect } from "react";
+import { subscribeWorkDay } from "@/lib/firestore";
 import type { WorkDay } from "@/types";
 
+/**
+ * Retorna o dia de trabalho com atualização em tempo real (onSnapshot).
+ * Qualquer aba ou dispositivo que altere o documento atualiza todos os outros.
+ */
 export function useWorkDay(userId: string | undefined, date: string) {
   const [workDay, setWorkDay] = useState<WorkDay | null>(null);
   const [loading, setLoading] = useState(true);
 
-  const refresh = useCallback(async () => {
-    if (!userId) {
+  useEffect(() => {
+    if (!userId || !date) {
       setWorkDay(null);
       setLoading(false);
       return;
     }
     setLoading(true);
-    try {
-      const wd = await getWorkDay(userId, date);
+    const unsubscribe = subscribeWorkDay(userId, date, (wd) => {
       setWorkDay(wd);
-    } catch {
-      setWorkDay(null);
-    } finally {
       setLoading(false);
-    }
+    });
+    return () => unsubscribe();
   }, [userId, date]);
 
-  useEffect(() => {
-    refresh();
-  }, [refresh]);
-
-  return { workDay, loading, refresh };
+  return { workDay, loading };
 }

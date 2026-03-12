@@ -1,10 +1,9 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useAuth } from "@/hooks/useAuth";
-import { useLocalPunch } from "@/hooks/useLocalPunch";
 import { useWorkDay } from "@/hooks/useWorkDay";
 import { useSyncWorkDayTotal } from "@/hooks/useSyncWorkDayTotal";
 import { ClockButton } from "@/components/ClockButton";
@@ -13,7 +12,8 @@ import { DayNotes } from "@/components/DayNotes";
 import { LiveClock } from "@/components/LiveClock";
 import { TodayWorkedTimer } from "@/components/TodayWorkedTimer";
 import { getTotalWorkedMs } from "@/lib/workDayTotal";
-import { punchOut } from "@/lib/firestore";
+import { punchIn, punchOut, closeWorkDay } from "@/lib/firestore";
+import type { Timestamp } from "firebase/firestore";
 
 function todayString(): string {
   const d = new Date();
@@ -27,8 +27,26 @@ export default function DashboardPage() {
   const { user, loading: authLoading, signOut } = useAuth();
   const router = useRouter();
   const today = todayString();
-  const { isOpen, openDetails, localIntervals, isDayClosed, registerEntry, registerExit, closeDay, refresh } = useLocalPunch(user?.uid, today);
-  const { workDay, loading: workDayLoading, refresh: refreshWorkDay } = useWorkDay(user?.uid, today);
+  const { workDay, loading: workDayLoading } = useWorkDay(user?.uid, today);
+
+  const { isOpen, openDetails, isDayClosed } = useMemo(() => {
+    const punches = workDay?.punches ?? [];
+    const last = punches[punches.length - 1];
+    const open = !!(
+      workDay &&
+      punches.length > 0 &&
+      last &&
+      (last.exit === null || last.exit === undefined)
+    );
+    return {
+      isOpen: open && workDay!.date === today,
+      openDetails:
+        open && last && workDay!.date === today
+          ? { date: workDay!.date, entry: last.entry as Timestamp }
+          : null,
+      isDayClosed: !!workDay?.closedAt,
+    };
+  }, [workDay, today]);
 
   const [now, setNow] = useState(() => Date.now());
   const openIsToday = isOpen && openDetails?.date === today;
@@ -40,7 +58,7 @@ export default function DashboardPage() {
 
   const totalWorkedMs = getTotalWorkedMs(
     workDay?.punches ?? [],
-    localIntervals,
+    [],
     today,
     isOpen,
     openDetails,
@@ -52,18 +70,20 @@ export default function DashboardPage() {
     if (!authLoading && !user) router.replace("/login");
   }, [user, authLoading, router]);
 
-  function handleRefresh() {
-    refresh();
-    refreshWorkDay();
+  async function handleRegisterEntry() {
+    if (!user) return;
+    await punchIn(user.uid, today);
   }
 
-  function handleCloseDay() {
-    if (isOpen) {
-      registerExit();
-      punchOut(user?.uid ?? "").then(() => handleRefresh()).catch(() => {});
-    }
-    closeDay();
-    handleRefresh();
+  async function handleRegisterExit() {
+    if (!user) return;
+    await punchOut(user.uid);
+  }
+
+  async function handleCloseDay() {
+    if (!user) return;
+    if (isOpen) await punchOut(user.uid);
+    await closeWorkDay(user.uid, today);
   }
 
   if (authLoading || !user) {
@@ -118,7 +138,7 @@ export default function DashboardPage() {
           <div className="mb-6">
             <TodayWorkedTimer
               punches={workDay?.punches ?? []}
-              localIntervals={localIntervals}
+              localIntervals={[]}
               today={today}
               isOpen={isOpen}
               openDetails={openDetails}
@@ -132,13 +152,10 @@ export default function DashboardPage() {
           ) : (
             <>
               <ClockButton
-                userId={user.uid}
                 isOpen={isOpen}
-                today={today}
                 openDetails={openDetails}
-                onRegisterEntry={registerEntry}
-                onRegisterExit={registerExit}
-                onRefresh={handleRefresh}
+                onRegisterEntry={handleRegisterEntry}
+                onRegisterExit={handleRegisterExit}
               />
               <div className="mt-4 text-center">
                 <button
@@ -169,7 +186,6 @@ export default function DashboardPage() {
             initialRecords={workDay?.records}
             initialNotes={workDay?.notes ?? ""}
             dayStarted={(workDay?.punches?.length ?? 0) > 0}
-            onUpdate={refreshWorkDay}
           />
         </section>
       </main>

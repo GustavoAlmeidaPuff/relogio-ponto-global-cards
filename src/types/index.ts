@@ -16,6 +16,8 @@ export interface WorkDay {
   records?: string[];
   /** Tempo trabalhado no dia em milissegundos (atualizado a cada ~10s). */
   totalWorkedMs?: number;
+  /** Preenchido ao clicar em "Fechar dia"; sincronizado entre dispositivos. */
+  closedAt?: Timestamp | null;
   createdAt: Timestamp;
   updatedAt: Timestamp;
 }
@@ -27,6 +29,7 @@ export interface WorkDayData {
   notes?: string;
   records?: string[];
   totalWorkedMs?: number;
+  closedAt?: Timestamp | null;
   createdAt: Timestamp;
   updatedAt: Timestamp;
 }

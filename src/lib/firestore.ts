@@ -8,9 +8,11 @@ import {
   query,
   where,
   serverTimestamp,
+  onSnapshot,
   type Timestamp,
   type DocumentReference,
   type DocumentSnapshot,
+  type Unsubscribe,
 } from "firebase/firestore";
 import { getDb } from "./firebase";
 import type { WorkDay, WorkDayData, Punch } from "@/types";
@@ -238,6 +240,50 @@ export async function updateWorkDayRecords(
       updatedAt: serverTimestamp(),
     });
   }
+}
+
+/** Marca o dia como fechado (sincronizado entre dispositivos). */
+export async function closeWorkDay(userId: string, date: string): Promise<void> {
+  const id = workDayId(userId, date);
+  const ref = doc(getDb(), WORK_DAYS, id);
+  const existing = await getDoc(ref);
+  if (existing.exists()) {
+    await updateDoc(ref, { closedAt: serverTimestamp(), updatedAt: serverTimestamp() });
+  } else {
+    await setDoc(ref, {
+      userId,
+      date,
+      punches: [],
+      notes: "",
+      records: [],
+      closedAt: serverTimestamp(),
+      createdAt: serverTimestamp(),
+      updatedAt: serverTimestamp(),
+    });
+  }
+}
+
+/** Inscreve para atualizações em tempo real do documento do dia. Retorna função para cancelar. */
+export function subscribeWorkDay(
+  userId: string,
+  date: string,
+  onUpdate: (workDay: WorkDay | null) => void
+): Unsubscribe {
+  const ref = doc(getDb(), WORK_DAYS, workDayId(userId, date));
+  return onSnapshot(
+    ref,
+    (snap) => {
+      if (!snap.exists()) {
+        onUpdate(null);
+        return;
+      }
+      onUpdate({ id: snap.id, ...snap.data() } as WorkDay);
+    },
+    (err) => {
+      console.error("subscribeWorkDay", err);
+      onUpdate(null);
+    }
+  );
 }
 
 export async function getWorkDaysInMonth(
