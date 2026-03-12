@@ -72,11 +72,19 @@ export async function punchIn(userId: string, date: string): Promise<void> {
   }
   const id = workDayId(userId, date);
   const ref = doc(getDb(), WORK_DAYS, id);
-  const existing = await getDoc(ref);
+  let existing: DocumentSnapshot | null = null;
+  for (let attempt = 0; attempt < 2; attempt++) {
+    try {
+      existing = await getDocWithTimeout(ref, WORK_DAY_READ_TIMEOUT_MS);
+      break;
+    } catch (e) {
+      if (attempt === 1) throw new Error("Leitura do dia demorou demais. Tente de novo.");
+    }
+  }
   const now = serverTimestamp() as Timestamp;
   const newPunch: Punch = { entry: now, exit: null };
-  if (existing.exists()) {
-    const data = existing.data();
+  if (existing!.exists()) {
+    const data = existing!.data();
     const punches = (data.punches || []) as Punch[];
     punches.push(newPunch);
     await updateDoc(ref, {
@@ -118,14 +126,19 @@ export async function hasOpenPunch(userId: string): Promise<boolean> {
 }
 
 const SINGLE_GET_TIMEOUT_MS = 3000;
+/** Leitura do documento do dia em punchIn; banco novo ou frio pode demorar. */
+const WORK_DAY_READ_TIMEOUT_MS = 15_000;
 
-function getDocWithTimeout(ref: DocumentReference): Promise<DocumentSnapshot> {
+function getDocWithTimeout(
+  ref: DocumentReference,
+  ms: number = SINGLE_GET_TIMEOUT_MS
+): Promise<DocumentSnapshot> {
   return Promise.race([
     getDoc(ref),
     new Promise<DocumentSnapshot>((_, reject) =>
       setTimeout(
         () => reject(new Error("Timeout ao ler documento.")),
-        SINGLE_GET_TIMEOUT_MS
+        ms
       )
     ),
   ]);

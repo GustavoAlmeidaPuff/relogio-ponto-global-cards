@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 
-const BUTTON_TIMEOUT_MS = 12_000;
+const BUTTON_TIMEOUT_MS = 35_000;
 
 function withTimeout<T>(p: Promise<T>, ms: number): Promise<T> {
   return Promise.race([
@@ -11,6 +11,17 @@ function withTimeout<T>(p: Promise<T>, ms: number): Promise<T> {
       setTimeout(() => reject(new Error("timeout")), ms)
     ),
   ]);
+}
+
+function getErrorMessage(err: unknown): string {
+  const msg = err instanceof Error ? err.message : "";
+  const code = (err as { code?: string })?.code ?? "";
+  if (msg.includes("timeout") || msg.includes("Demorou")) return "Demorou demais. Tente de novo.";
+  if (msg.includes("expediente em aberto") || msg.includes("Nenhum expediente")) return msg;
+  if (msg.includes("Firebase não está") || msg.includes("disponível")) return "Sistema ainda carregando. Aguarde e tente em instantes.";
+  if (code.includes("permission-denied") || msg.includes("permissão")) return "Sem permissão. Faça login novamente.";
+  if (msg.length > 0 && msg.length < 120) return msg;
+  return "Não foi possível registrar. Tente de novo.";
 }
 
 interface ClockButtonProps {
@@ -38,11 +49,8 @@ export function ClockButton({
     try {
       await withTimeout(Promise.resolve(onRegisterEntry()), BUTTON_TIMEOUT_MS);
       setMessage({ type: "success", text: "Entrada registrada." });
-    } catch {
-      setMessage({
-        type: "error",
-        text: "Demorou demais ou falhou. Verifique a conexão e tente de novo.",
-      });
+    } catch (err) {
+      setMessage({ type: "error", text: getErrorMessage(err) });
     } finally {
       setLoading(false);
     }
@@ -54,11 +62,8 @@ export function ClockButton({
     try {
       await withTimeout(Promise.resolve(onRegisterExit()), BUTTON_TIMEOUT_MS);
       setMessage({ type: "success", text: "Pausado." });
-    } catch {
-      setMessage({
-        type: "error",
-        text: "Demorou demais ou falhou. Verifique a conexão e tente de novo.",
-      });
+    } catch (err) {
+      setMessage({ type: "error", text: getErrorMessage(err) });
     } finally {
       setLoading(false);
     }
