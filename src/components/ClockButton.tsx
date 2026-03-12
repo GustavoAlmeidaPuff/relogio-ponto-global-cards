@@ -14,14 +14,23 @@ function withTimeout<T>(p: Promise<T>, ms: number): Promise<T> {
 }
 
 function getErrorMessage(err: unknown): string {
-  const msg = err instanceof Error ? err.message : "";
+  const msg = err instanceof Error ? err.message : String(err);
   const code = (err as { code?: string })?.code ?? "";
+  if (typeof err === "object" && err !== null) {
+    try {
+      console.error("[ClockButton] Erro ao registrar:", err);
+    } catch {
+      // ignore
+    }
+  }
   if (msg.includes("timeout") || msg.includes("Demorou")) return "Demorou demais. Tente de novo.";
   if (msg.includes("expediente em aberto") || msg.includes("Nenhum expediente")) return msg;
   if (msg.includes("Firebase não está") || msg.includes("disponível")) return "Sistema ainda carregando. Aguarde e tente em instantes.";
-  if (code.includes("permission-denied") || msg.includes("permissão")) return "Sem permissão. Faça login novamente.";
-  if (msg.length > 0 && msg.length < 120) return msg;
-  return "Não foi possível registrar. Tente de novo.";
+  if (code === "permission-denied" || msg.toLowerCase().includes("permission")) return "Sem permissão no banco. Confira as regras do Firestore e faça deploy.";
+  if (code === "unavailable" || msg.includes("unavailable")) return "Firestore indisponível. Tente em alguns segundos.";
+  if (code === "failed-precondition") return "Condição do banco falhou. Tente de novo.";
+  if (msg.length > 0 && msg.length <= 180) return msg;
+  return "Não foi possível registrar. Tente de novo. (Abra o Console F12 para detalhes.)";
 }
 
 interface ClockButtonProps {

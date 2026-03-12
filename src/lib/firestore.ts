@@ -8,8 +8,8 @@ import {
   query,
   where,
   serverTimestamp,
+  Timestamp,
   onSnapshot,
-  type Timestamp,
   type DocumentReference,
   type DocumentSnapshot,
   type Unsubscribe,
@@ -81,7 +81,7 @@ export async function punchIn(userId: string, date: string): Promise<void> {
       if (attempt === 1) throw new Error("Leitura do dia demorou demais. Tente de novo.");
     }
   }
-  const now = serverTimestamp() as Timestamp;
+  const now = Timestamp.now();
   const newPunch: Punch = { entry: now, exit: null };
   if (existing!.exists()) {
     const data = existing!.data();
@@ -114,7 +114,7 @@ export async function punchOut(userId: string): Promise<void> {
     throw new Error("Nenhum expediente em aberto para registrar saída.");
   }
   const { docRef, punchIndex, punches } = openDoc;
-  const now = serverTimestamp() as Timestamp;
+  const now = Timestamp.now();
   const updated = [...punches];
   updated[punchIndex] = { ...updated[punchIndex], exit: now };
   await updateDoc(docRef, { punches: updated, updatedAt: serverTimestamp() });
