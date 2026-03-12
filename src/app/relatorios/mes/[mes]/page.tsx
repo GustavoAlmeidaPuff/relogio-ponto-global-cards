@@ -4,7 +4,7 @@ import { useParams, useRouter } from "next/navigation";
 import { useEffect } from "react";
 import Link from "next/link";
 import { useAuth } from "@/hooks/useAuth";
-import { useOpenPunch } from "@/hooks/useOpenPunch";
+import { useLocalPunch } from "@/hooks/useLocalPunch";
 import { useMonthReport } from "@/hooks/useMonthReport";
 import { ReportMonth } from "@/components/ReportMonth";
 import { CloseMonthButton } from "@/components/CloseMonthButton";
@@ -16,7 +16,11 @@ export default function MesPage() {
   const mes = (params.mes as string) || "";
   const validMes = /^\d{4}-\d{2}$/.test(mes) ? mes : null;
   const { user, loading: authLoading } = useAuth();
-  const { isOpen } = useOpenPunch(user?.uid);
+  const today = (() => {
+    const d = new Date();
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+  })();
+  const { isOpen } = useLocalPunch(user?.uid, today);
   const {
     workDays,
     totalMinutes,

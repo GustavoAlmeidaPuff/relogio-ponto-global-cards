@@ -10,9 +10,26 @@ import {
   serverTimestamp,
   type Timestamp,
   type DocumentReference,
+  type DocumentSnapshot,
 } from "firebase/firestore";
-import { db } from "./firebase";
+import { getDb } from "./firebase";
 import type { WorkDay, WorkDayData, Punch } from "@/types";
+
+const RETRYABLE_CODES = new Set(["unavailable", "failed-precondition"]);
+
+async function withRetry<T>(fn: () => Promise<T>, retries = 4): Promise<T> {
+  for (let attempt = 0; attempt < retries; attempt++) {
+    try {
+      return await fn();
+    } catch (err) {
+      const code = (err as { code?: string }).code ?? "";
+      const isLast = attempt === retries - 1;
+      if (isLast || !RETRYABLE_CODES.has(code)) throw err;
+      await new Promise((res) => setTimeout(res, 600 * (attempt + 1)));
+    }
+  }
+  throw new Error("Falha após múltiplas tentativas.");
+}
 
 const WORK_DAYS = "workDays";
 const MONTH_CLOSURES = "monthClosures";
@@ -29,19 +46,30 @@ export async function getWorkDay(
   userId: string,
   date: string
 ): Promise<WorkDay | null> {
-  const ref = doc(db, WORK_DAYS, workDayId(userId, date));
+  const ref = doc(getDb(), WORK_DAYS, workDayId(userId, date));
   const snap = await getDoc(ref);
   if (!snap.exists()) return null;
   return { id: snap.id, ...snap.data() } as WorkDay;
 }
 
+const OPEN_CHECK_TIMEOUT_MS = 4000;
+
+async function hasOpenPunchWithTimeout(userId: string): Promise<boolean> {
+  return Promise.race([
+    hasOpenPunch(userId),
+    new Promise<boolean>((resolve) =>
+      setTimeout(() => resolve(false), OPEN_CHECK_TIMEOUT_MS)
+    ),
+  ]);
+}
+
 export async function punchIn(userId: string, date: string): Promise<void> {
-  const hasOpen = await hasOpenPunch(userId);
+  const hasOpen = await hasOpenPunchWithTimeout(userId);
   if (hasOpen) {
     throw new Error("Já existe um expediente em aberto. Registre a saída antes de nova entrada.");
   }
   const id = workDayId(userId, date);
-  const ref = doc(db, WORK_DAYS, id);
+  const ref = doc(getDb(), WORK_DAYS, id);
   const existing = await getDoc(ref);
   const now = serverTimestamp() as Timestamp;
   const newPunch: Punch = { entry: now, exit: null };
@@ -62,6 +90,7 @@ export async function punchIn(userId: string, date: string): Promise<void> {
       date,
       punches: [newPunch],
       notes: "",
+      records: [],
       createdAt: serverTimestamp(),
       updatedAt: serverTimestamp(),
     };
@@ -86,21 +115,54 @@ export async function hasOpenPunch(userId: string): Promise<boolean> {
   return !!open;
 }
 
+const SINGLE_GET_TIMEOUT_MS = 3000;
+
+function getDocWithTimeout(ref: DocumentReference): Promise<DocumentSnapshot> {
+  return Promise.race([
+    getDoc(ref),
+    new Promise<DocumentSnapshot>((_, reject) =>
+      setTimeout(
+        () => reject(new Error("Timeout ao ler documento.")),
+        SINGLE_GET_TIMEOUT_MS
+      )
+    ),
+  ]);
+}
+
 export async function getOpenPunchDocument(
   userId: string
 ): Promise<{ docRef: DocumentReference; punchIndex: number; punches: Punch[] } | null> {
-  const col = collection(db, WORK_DAYS);
-  const q = query(col, where("userId", "==", userId));
-  const snapshot = await getDocs(q);
-  for (const d of snapshot.docs) {
-    const data = d.data();
-    const punches = (data.punches || []) as Punch[];
+  const base = new Date();
+  for (let daysBack = 0; daysBack <= 3; daysBack++) {
+    const d = new Date(base);
+    d.setDate(base.getDate() - daysBack);
+    const dateStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+    const ref = doc(getDb(), WORK_DAYS, workDayId(userId, dateStr));
+    let snap: DocumentSnapshot | undefined;
+    try {
+      snap = await getDocWithTimeout(ref);
+    } catch {
+      continue;
+    }
+    if (!snap?.exists()) continue;
+    const punches = ((snap.data() as { punches?: Punch[] })?.punches || []) as Punch[];
     const idx = punches.findIndex((p: Punch) => p.exit === null);
     if (idx !== -1) {
-      return { docRef: doc(db, WORK_DAYS, d.id), punchIndex: idx, punches };
+      return { docRef: ref, punchIndex: idx, punches };
     }
   }
   return null;
+}
+
+/** Retorna data (YYYY-MM-DD) e horário de entrada da batida em aberto, ou null. */
+export async function getOpenPunchDetails(
+  userId: string
+): Promise<{ date: string; entry: Timestamp } | null> {
+  const open = await getOpenPunchDocument(userId);
+  if (!open) return null;
+  const date = open.docRef.id.slice(userId.length + 1);
+  const entry = open.punches[open.punchIndex].entry;
+  return { date, entry };
 }
 
 export async function updateWorkDayNotes(
@@ -109,7 +171,7 @@ export async function updateWorkDayNotes(
   notes: string
 ): Promise<void> {
   const id = workDayId(userId, date);
-  const ref = doc(db, WORK_DAYS, id);
+  const ref = doc(getDb(), WORK_DAYS, id);
   const existing = await getDoc(ref);
   if (existing.exists()) {
     await updateDoc(ref, { notes, updatedAt: serverTimestamp() });
@@ -119,6 +181,59 @@ export async function updateWorkDayNotes(
       date,
       punches: [],
       notes,
+      records: [],
+      createdAt: serverTimestamp(),
+      updatedAt: serverTimestamp(),
+    });
+  }
+}
+
+/** Atualiza o total de tempo trabalhado no dia (chamado a cada ~10s). */
+export async function updateWorkDayTotal(
+  userId: string,
+  date: string,
+  totalWorkedMs: number
+): Promise<void> {
+  const id = workDayId(userId, date);
+  const ref = doc(getDb(), WORK_DAYS, id);
+  const existing = await getDoc(ref);
+  if (existing.exists()) {
+    await updateDoc(ref, {
+      totalWorkedMs,
+      updatedAt: serverTimestamp(),
+    });
+  } else {
+    await setDoc(ref, {
+      userId,
+      date,
+      punches: [],
+      notes: "",
+      records: [],
+      totalWorkedMs,
+      createdAt: serverTimestamp(),
+      updatedAt: serverTimestamp(),
+    });
+  }
+}
+
+/** Atualiza a lista de registros "o que fiz" do dia. */
+export async function updateWorkDayRecords(
+  userId: string,
+  date: string,
+  records: string[]
+): Promise<void> {
+  const id = workDayId(userId, date);
+  const ref = doc(getDb(), WORK_DAYS, id);
+  const existing = await getDoc(ref);
+  if (existing.exists()) {
+    await updateDoc(ref, { records, updatedAt: serverTimestamp() });
+  } else {
+    await setDoc(ref, {
+      userId,
+      date,
+      punches: [],
+      notes: "",
+      records,
       createdAt: serverTimestamp(),
       updatedAt: serverTimestamp(),
     });
@@ -133,7 +248,7 @@ export async function getWorkDaysInMonth(
   const start = `${year}-${String(m).padStart(2, "0")}-01`;
   const lastDay = new Date(year, m, 0).getDate();
   const end = `${year}-${String(m).padStart(2, "0")}-${String(lastDay).padStart(2, "0")}`;
-  const col = collection(db, WORK_DAYS);
+  const col = collection(getDb(), WORK_DAYS);
   const q = query(col, where("userId", "==", userId));
   const snapshot = await getDocs(q);
   const all = snapshot.docs.map((d) => ({ id: d.id, ...d.data() } as WorkDay));
@@ -151,7 +266,7 @@ export async function closeMonth(
     throw new Error("Registre sua saída antes de fechar o mês.");
   }
   const id = monthClosureId(userId, month);
-  const ref = doc(db, MONTH_CLOSURES, id);
+  const ref = doc(getDb(), MONTH_CLOSURES, id);
   await setDoc(ref, {
     userId,
     month,
@@ -163,7 +278,7 @@ export async function getMonthClosure(
   userId: string,
   month: string
 ): Promise<{ closedAt: Timestamp } | null> {
-  const ref = doc(db, MONTH_CLOSURES, monthClosureId(userId, month));
+  const ref = doc(getDb(), MONTH_CLOSURES, monthClosureId(userId, month));
   const snap = await getDoc(ref);
   if (!snap.exists()) return null;
   return { closedAt: snap.data().closedAt } as { closedAt: Timestamp };

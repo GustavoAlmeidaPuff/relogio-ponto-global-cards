@@ -6,40 +6,69 @@ import { punchIn, punchOut } from "@/lib/firestore";
 interface ClockButtonProps {
   userId: string;
   isOpen: boolean;
-  today: string; // YYYY-MM-DD
-  onSuccess: () => void;
+  today: string;
+  /** Ao pausar, passa o horário de entrada (ms) para o contador acumular o intervalo. */
+  openDetails: { entry: { toMillis: () => number } } | null;
+  onRegisterEntry: () => void;
+  onRegisterExit: (entryAt?: number) => void;
+  onRefresh?: () => void;
 }
 
+/**
+ * Botão de entrada/saída: atualiza a UI na hora (localStorage).
+ * Tenta sincronizar com Firestore em segundo plano, sem bloquear.
+ */
 export function ClockButton({
   userId,
   isOpen,
   today,
-  onSuccess,
+  openDetails,
+  onRegisterEntry,
+  onRegisterExit,
+  onRefresh,
 }: ClockButtonProps) {
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
 
-  async function handleClick() {
+  function handleEntry() {
     setMessage(null);
     setLoading(true);
-    try {
-      if (isOpen) {
-        await punchOut(userId);
-        setMessage({ type: "success", text: "Saída registrada." });
-      } else {
-        await punchIn(userId, today);
-        setMessage({ type: "success", text: "Entrada registrada." });
-      }
-      onSuccess();
-    } catch (err) {
-      setMessage({
-        type: "error",
-        text: err instanceof Error ? err.message : "Erro ao registrar.",
+    onRegisterEntry();
+    setMessage({ type: "success", text: "Entrada registrada." });
+    setLoading(false);
+    onRefresh?.();
+
+    // Sincroniza com Firestore em background (não bloqueia)
+    punchIn(userId, today)
+      .then(() => onRefresh?.())
+      .catch(() => {
+        // Silencioso: já registramos localmente
       });
-    } finally {
-      setLoading(false);
+  }
+
+  function handleExit() {
+    setMessage(null);
+    setLoading(true);
+    const entryAt = isOpen && openDetails ? openDetails.entry.toMillis() : undefined;
+    onRegisterExit(entryAt);
+    setMessage({ type: "success", text: "Pausado." });
+    setLoading(false);
+    onRefresh?.();
+
+    punchOut(userId)
+      .then(() => onRefresh?.())
+      .catch(() => {});
+  }
+
+  function handleClick() {
+    if (isOpen) {
+      handleExit();
+    } else {
+      handleEntry();
     }
   }
+
+  const buttonLabel = loading ? "..." : isOpen ? "Pausar" : "Registrar entrada";
 
   return (
     <div className="flex flex-col items-center gap-3">
@@ -56,7 +85,7 @@ export function ClockButton({
           }
         `}
       >
-        {loading ? "..." : isOpen ? "Registrar saída" : "Registrar entrada"}
+        {buttonLabel}
       </button>
       {message && (
         <p

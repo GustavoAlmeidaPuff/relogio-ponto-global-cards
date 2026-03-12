@@ -11,7 +11,7 @@ export default function LoginPage() {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [isSignUp, setIsSignUp] = useState(false);
-  const { signIn, signUp, signInWithGoogle, user } = useAuth();
+  const { signIn, signUp, signInWithGoogle, user, firebaseConfigured } = useAuth();
   const [googleLoading, setGoogleLoading] = useState(false);
   const router = useRouter();
 
@@ -59,6 +59,14 @@ export default function LoginPage() {
         <h1 className="text-2xl font-bold text-center text-slate-800 mb-6">
           Relógio Ponto
         </h1>
+        {!firebaseConfigured && (
+          <div className="mb-4 p-3 rounded-lg bg-amber-50 border border-amber-200 text-amber-800 text-sm">
+            <p className="font-medium">Firebase não configurado</p>
+            <p className="mt-1">
+              Crie um arquivo <code className="bg-amber-100 px-1 rounded">.env.local</code> na raiz do projeto com as variáveis <code className="bg-amber-100 px-1 rounded">NEXT_PUBLIC_FIREBASE_*</code>. Use o <code className="bg-amber-100 px-1 rounded">.env.local.example</code> como referência.
+            </p>
+          </div>
+        )}
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
             <label htmlFor="email" className="block text-sm font-medium text-slate-700 mb-1">

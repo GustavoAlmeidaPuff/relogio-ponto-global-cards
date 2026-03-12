@@ -1,6 +1,18 @@
 import type { Metadata } from "next";
+import dynamic from "next/dynamic";
 import "./globals.css";
-import { AuthProvider } from "@/contexts/AuthContext";
+
+const AuthProvider = dynamic(
+  () => import("@/contexts/AuthContext").then((m) => ({ default: m.AuthProvider })),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="min-h-screen flex items-center justify-center bg-slate-50 text-slate-500">
+        Carregando…
+      </div>
+    ),
+  }
+);
 
 export const metadata: Metadata = {
   title: "Relógio Ponto",

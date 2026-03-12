@@ -10,7 +10,12 @@ export interface WorkDay {
   userId: string;
   date: string; // YYYY-MM-DD
   punches: Punch[];
-  notes: string;
+  /** @deprecated use records */
+  notes?: string;
+  /** Registros "o que fiz" do dia. */
+  records?: string[];
+  /** Tempo trabalhado no dia em milissegundos (atualizado a cada ~10s). */
+  totalWorkedMs?: number;
   createdAt: Timestamp;
   updatedAt: Timestamp;
 }
@@ -19,7 +24,9 @@ export interface WorkDayData {
   userId: string;
   date: string;
   punches: Punch[];
-  notes: string;
+  notes?: string;
+  records?: string[];
+  totalWorkedMs?: number;
   createdAt: Timestamp;
   updatedAt: Timestamp;
 }

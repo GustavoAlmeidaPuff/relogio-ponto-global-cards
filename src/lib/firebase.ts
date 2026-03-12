@@ -13,22 +13,31 @@ const firebaseConfig = {
   measurementId: process.env.NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID,
 };
 
-let app: FirebaseApp;
-let auth: Auth;
-let db: Firestore;
+const hasValidConfig =
+  typeof firebaseConfig.apiKey === "string" && firebaseConfig.apiKey.length > 0;
+
+// Inicializados apenas no cliente; no SSR ficam null para evitar token inválido no chunk.
+let app: FirebaseApp | null = null;
+let auth: Auth | null = null;
+let db: Firestore | null = null;
 let analytics: Analytics | null = null;
 
-if (getApps().length === 0) {
-  app = initializeApp(firebaseConfig);
-  auth = getAuth(app);
-  db = getFirestore(app);
-  if (typeof window !== "undefined") {
-    analytics = getAnalytics(app);
-  }
-} else {
-  app = getApps()[0] as FirebaseApp;
-  auth = getAuth(app);
-  db = getFirestore(app);
+if (typeof window !== "undefined" && hasValidConfig) {
+  const firebaseApp =
+    getApps().length === 0 ? initializeApp(firebaseConfig) : (getApps()[0] as FirebaseApp);
+  app = firebaseApp;
+  auth = getAuth(firebaseApp);
+  db = getFirestore(firebaseApp);
+  analytics = getAnalytics(firebaseApp);
 }
 
 export { app, auth, db, analytics };
+
+export function getDb(): Firestore {
+  if (db === null) throw new Error("Firebase não está disponível.");
+  return db;
+}
+
+export function isFirebaseConfigured(): boolean {
+  return hasValidConfig && typeof window !== "undefined";
+}
