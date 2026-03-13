@@ -9,7 +9,7 @@ import {
 } from "@/lib/workDayTotal";
 
 interface TodayWorkedTimerProps {
-  punches: { entry: Timestamp; exit?: Timestamp }[];
+  punches: { entry: Timestamp; exit?: Timestamp | null }[];
   localIntervals: LocalInterval[];
   today: string;
   isOpen: boolean;
