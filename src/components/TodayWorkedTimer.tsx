@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import type { Punch } from "@/types";
 import type { Timestamp } from "firebase/firestore";
 import {
   getTotalWorkedMs,
@@ -9,7 +10,7 @@ import {
 } from "@/lib/workDayTotal";
 
 interface TodayWorkedTimerProps {
-  punches: { entry: Timestamp; exit?: Timestamp | null }[];
+  punches: Punch[];
   localIntervals: LocalInterval[];
   today: string;
   isOpen: boolean;
