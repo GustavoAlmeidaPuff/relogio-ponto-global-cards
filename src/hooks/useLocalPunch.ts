@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useCallback, useState } from "react";
+import { useCallback, useState } from "react";
 import {
   getLocalOpenPunch,
   setLocalOpenPunch,
@@ -24,8 +24,8 @@ export interface OpenPunchDetails {
 export function useLocalPunch(userId: string | undefined, today: string) {
   const [version, setVersion] = useState(0);
 
-  const localPunch = useMemo(() => getLocalOpenPunch(), [version]);
-  const localIntervals = useMemo(() => getLocalIntervals(today), [today, version]);
+  const localPunch = getLocalOpenPunch();
+  const localIntervals = getLocalIntervals(today);
 
   const isOpen =
     !!userId &&
