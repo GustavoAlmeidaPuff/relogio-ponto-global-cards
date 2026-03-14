@@ -43,7 +43,8 @@ const styles = StyleSheet.create({
   dayBlock: { marginBottom: 12, paddingBottom: 8, borderBottomWidth: 1, borderBottomColor: "#e5e7eb" },
   dayTitle: { fontSize: 11, fontWeight: "bold", marginBottom: 4 },
   punchLine: { fontSize: 9, color: "#4b5563", marginBottom: 2 },
-  notes: { fontSize: 9, marginTop: 4, color: "#6b7280" },
+  notesTitle: { fontSize: 9, fontWeight: "bold", marginTop: 6, marginBottom: 2, color: "#6b7280" },
+  notes: { fontSize: 9, marginTop: 2, color: "#6b7280" },
 });
 
 interface MonthReportPdfProps {
@@ -100,8 +101,18 @@ export function MonthReportPdf({
                 {p.exit ? ` → Saída ${formatTime(p.exit)}` : " (em aberto)"}
               </Text>
             ))}
-            {wd.notes ? (
-              <Text style={styles.notes}>O que fiz: {wd.notes}</Text>
+            {(wd.records && wd.records.length > 0) ? (
+              <>
+                <Text style={styles.notesTitle}>O que fiz:</Text>
+                {wd.records.map((text, i) => (
+                  <Text key={i} style={styles.notes}>{text}</Text>
+                ))}
+              </>
+            ) : wd.notes ? (
+              <>
+                <Text style={styles.notesTitle}>O que fiz:</Text>
+                <Text style={styles.notes}>{wd.notes}</Text>
+              </>
             ) : null}
           </View>
         </Page>
