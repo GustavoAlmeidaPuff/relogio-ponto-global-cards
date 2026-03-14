@@ -1,12 +1,17 @@
 "use client";
 
 import { useParams, useRouter } from "next/navigation";
-import { useEffect, useMemo } from "react";
+import { useEffect, useMemo, useCallback } from "react";
 import Link from "next/link";
 import { useAuth } from "@/hooks/useAuth";
 import { useWorkDay } from "@/hooks/useWorkDay";
-import { useMonthReport } from "@/hooks/useMonthReport";
-import { totalMinutesForDay, formatHours } from "@/hooks/useMonthReport";
+import {
+  useMonthReport,
+  totalMinutesForDay,
+  formatHours,
+  groupByWeek,
+} from "@/hooks/useMonthReport";
+import { getWorkDaysInMonth, getMonthClosure } from "@/lib/firestore";
 import { CloseMonthButton } from "@/components/CloseMonthButton";
 import { PdfExportButton } from "@/components/PdfExportButton";
 
@@ -48,6 +53,25 @@ export default function MesPage() {
     loading,
     refresh,
   } = useMonthReport(user?.uid, validMes ?? "2000-01");
+
+  const prepareExport = useCallback(async () => {
+    if (!user?.uid || !validMes) {
+      return { workDays, weekSummaries, totalMinutes, closedAt };
+    }
+    const [days, closure] = await Promise.all([
+      getWorkDaysInMonth(user.uid, validMes),
+      getMonthClosure(user.uid, validMes),
+    ]);
+    const closedAtStamp = closure?.closedAt ?? null;
+    const total = days.reduce((acc, wd) => acc + totalMinutesForDay(wd), 0);
+    const weeks = groupByWeek(days);
+    return {
+      workDays: days,
+      weekSummaries: weeks,
+      totalMinutes: total,
+      closedAt: closedAtStamp,
+    };
+  }, [user?.uid, validMes, workDays, weekSummaries, totalMinutes, closedAt]);
 
   useEffect(() => {
     if (!authLoading && !user) router.replace("/login");
@@ -109,6 +133,7 @@ export default function MesPage() {
             weekSummaries={weekSummaries}
             totalMinutes={totalMinutes}
             closedAt={closedAt}
+            onPrepareExport={prepareExport}
           />
         </div>
 

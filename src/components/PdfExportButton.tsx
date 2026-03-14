@@ -7,6 +7,13 @@ import type { WeekSummary } from "@/hooks/useMonthReport";
 import type { Timestamp } from "firebase/firestore";
 import { MonthReportPdf } from "./MonthReportPdf";
 
+export interface MonthReportData {
+  workDays: WorkDay[];
+  weekSummaries: WeekSummary[];
+  totalMinutes: number;
+  closedAt: Timestamp | null;
+}
+
 interface PdfExportButtonProps {
   month: string;
   monthLabel: string;
@@ -14,6 +21,8 @@ interface PdfExportButtonProps {
   weekSummaries: WeekSummary[];
   totalMinutes: number;
   closedAt: Timestamp | null;
+  /** Busca dados atualizados do servidor antes de gerar o PDF (inclui "o que fiz" de cada dia). */
+  onPrepareExport?: () => Promise<MonthReportData>;
 }
 
 export function PdfExportButton({
@@ -23,19 +32,29 @@ export function PdfExportButton({
   weekSummaries,
   totalMinutes,
   closedAt,
+  onPrepareExport,
 }: PdfExportButtonProps) {
   const [loading, setLoading] = useState(false);
 
   async function handleExport() {
     setLoading(true);
     try {
+      let data: MonthReportData = {
+        workDays,
+        weekSummaries,
+        totalMinutes,
+        closedAt,
+      };
+      if (onPrepareExport) {
+        data = await onPrepareExport();
+      }
       const blob = await pdf(
         <MonthReportPdf
           monthLabel={monthLabel}
-          workDays={workDays}
-          weekSummaries={weekSummaries}
-          totalMinutes={totalMinutes}
-          closedAt={closedAt}
+          workDays={data.workDays}
+          weekSummaries={data.weekSummaries}
+          totalMinutes={data.totalMinutes}
+          closedAt={data.closedAt}
         />
       ).toBlob();
       const url = URL.createObjectURL(blob);

@@ -33,6 +33,20 @@ function formatDate(dateStr: string): string {
   });
 }
 
+/** Lista de textos "o que fiz" a partir de records ou notes (compatibilidade). */
+function getDayRecords(wd: WorkDay): string[] {
+  if (wd.records && Array.isArray(wd.records) && wd.records.length > 0) {
+    return wd.records.filter((s) => s != null && String(s).trim() !== "");
+  }
+  if (wd.notes != null && String(wd.notes).trim() !== "") {
+    return String(wd.notes)
+      .split("\n")
+      .map((s) => s.trim())
+      .filter((s) => s !== "");
+  }
+  return [];
+}
+
 const styles = StyleSheet.create({
   page: { padding: 40, fontFamily: "Helvetica", fontSize: 10 },
   title: { fontSize: 18, marginBottom: 8 },
@@ -101,17 +115,12 @@ export function MonthReportPdf({
                 {p.exit ? ` → Saída ${formatTime(p.exit)}` : " (em aberto)"}
               </Text>
             ))}
-            {(wd.records && wd.records.length > 0) ? (
+            {getDayRecords(wd).length > 0 ? (
               <>
                 <Text style={styles.notesTitle}>O que fiz:</Text>
-                {wd.records.map((text, i) => (
+                {getDayRecords(wd).map((text, i) => (
                   <Text key={i} style={styles.notes}>{text}</Text>
                 ))}
-              </>
-            ) : wd.notes ? (
-              <>
-                <Text style={styles.notesTitle}>O que fiz:</Text>
-                <Text style={styles.notes}>{wd.notes}</Text>
               </>
             ) : null}
           </View>
