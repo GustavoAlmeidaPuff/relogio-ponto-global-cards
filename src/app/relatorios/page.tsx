@@ -14,7 +14,7 @@ function formatMonthLabel(mes: string): string {
 }
 
 export default function RelatoriosPage() {
-  const { user, loading } = useAuth();
+  const { user, loading, signOut } = useAuth();
   const router = useRouter();
   const [currentMonthClosed, setCurrentMonthClosed] = useState(false);
 
@@ -55,16 +55,28 @@ export default function RelatoriosPage() {
 
   return (
     <div className="min-h-screen bg-slate-50">
-      <header className="bg-white border-b border-slate-200 px-4 py-3 flex items-center justify-between flex-wrap gap-2">
-        <h1 className="text-lg font-semibold text-slate-800">Relatórios</h1>
-        <nav className="flex items-center gap-4">
+      <header className="bg-white border-b border-slate-200 px-4 py-3 flex items-center flex-wrap gap-2">
+        <div className="flex-1 min-w-0">
+          <h1 className="text-lg font-semibold text-slate-800">Relatórios</h1>
+        </div>
+        <nav className="flex-1 flex items-center justify-center gap-4 min-w-0">
           <Link href="/dashboard" className="text-slate-600 hover:text-slate-800">
-            Dashboard
+            Hoje
           </Link>
           <Link href="/relatorios" className="text-blue-600 font-medium">
             Relatórios
           </Link>
         </nav>
+        <div className="flex-1 flex items-center justify-end gap-4 min-w-0">
+          <span className="text-slate-500 text-sm truncate max-w-[180px] sm:max-w-none">{user.email}</span>
+          <button
+            type="button"
+            onClick={() => signOut().then(() => router.replace("/login"))}
+            className="text-slate-500 hover:text-slate-700 text-sm flex-shrink-0"
+          >
+            Sair
+          </button>
+        </div>
       </header>
       <main className="max-w-3xl mx-auto p-4 sm:p-6">
         <h2 className="text-xl font-semibold text-slate-800 mb-2">

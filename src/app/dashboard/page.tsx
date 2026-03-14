@@ -96,9 +96,11 @@ export default function DashboardPage() {
 
   return (
     <div className="min-h-screen bg-slate-50">
-      <header className="bg-white border-b border-slate-200 px-4 py-3 flex items-center justify-between flex-wrap gap-2 sticky top-0 z-10">
-        <h1 className="text-lg font-semibold text-slate-800">Relógio Ponto</h1>
-        <nav className="flex items-center gap-4">
+      <header className="bg-white border-b border-slate-200 px-4 py-3 flex items-center flex-wrap gap-2 sticky top-0 z-10">
+        <div className="flex-1 min-w-0">
+          <h1 className="text-lg font-semibold text-slate-800">Relógio Ponto</h1>
+        </div>
+        <nav className="flex-1 flex items-center justify-center gap-4 min-w-0">
           <Link
             href="/dashboard"
             className="text-blue-600 font-medium"
@@ -111,15 +113,17 @@ export default function DashboardPage() {
           >
             Relatórios
           </Link>
-          <span className="text-slate-500 text-sm">{user.email}</span>
+        </nav>
+        <div className="flex-1 flex items-center justify-end gap-4 min-w-0">
+          <span className="text-slate-500 text-sm truncate max-w-[180px] sm:max-w-none">{user.email}</span>
           <button
             type="button"
             onClick={() => signOut().then(() => router.replace("/login"))}
-            className="text-slate-500 hover:text-slate-700 text-sm"
+            className="text-slate-500 hover:text-slate-700 text-sm flex-shrink-0"
           >
             Sair
           </button>
-        </nav>
+        </div>
       </header>
 
       <main className="max-w-2xl mx-auto p-4 sm:p-6 space-y-8">

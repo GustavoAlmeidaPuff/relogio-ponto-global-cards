@@ -25,7 +25,7 @@ export default function DiaPage() {
   const dia = (params.dia as string) || "";
   const validMes = /^\d{4}-\d{2}$/.test(mes) ? mes : null;
   const validDia = /^\d{4}-\d{2}-\d{2}$/.test(dia) ? dia : null;
-  const { user, loading: authLoading } = useAuth();
+  const { user, loading: authLoading, signOut } = useAuth();
   const [workDay, setWorkDay] = useState<WorkDay | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -91,16 +91,28 @@ export default function DiaPage() {
   if (!workDay) {
     return (
       <div className="min-h-screen bg-slate-50">
-        <header className="bg-white border-b border-slate-200 px-4 py-3 flex items-center justify-between flex-wrap gap-2">
-          <h1 className="text-lg font-semibold text-slate-800">Dia</h1>
-          <nav className="flex items-center gap-4">
+        <header className="bg-white border-b border-slate-200 px-4 py-3 flex items-center flex-wrap gap-2">
+          <div className="flex-1 min-w-0">
+            <h1 className="text-lg font-semibold text-slate-800">Dia</h1>
+          </div>
+          <nav className="flex-1 flex items-center justify-center gap-4 min-w-0">
             <Link href="/dashboard" className="text-slate-600 hover:text-slate-800">
-              Dashboard
+              Hoje
             </Link>
             <Link href="/relatorios" className="text-slate-600 hover:text-slate-800">
               Relatórios
             </Link>
           </nav>
+          <div className="flex-1 flex items-center justify-end gap-4 min-w-0">
+            <span className="text-slate-500 text-sm truncate max-w-[180px] sm:max-w-none">{user.email}</span>
+            <button
+              type="button"
+              onClick={() => signOut().then(() => router.replace("/login"))}
+              className="text-slate-500 hover:text-slate-700 text-sm flex-shrink-0"
+            >
+              Sair
+            </button>
+          </div>
         </header>
         <main className="max-w-3xl mx-auto p-4 sm:p-6">
           <p className="text-slate-600 mb-4">
@@ -125,18 +137,30 @@ export default function DiaPage() {
 
   return (
     <div className="min-h-screen bg-slate-50">
-      <header className="bg-white border-b border-slate-200 px-4 py-3 flex items-center justify-between flex-wrap gap-2">
-        <h1 className="text-lg font-semibold text-slate-800 capitalize">
-          {formatDayLabel(workDay.date)}
-        </h1>
-        <nav className="flex items-center gap-4">
+      <header className="bg-white border-b border-slate-200 px-4 py-3 flex items-center flex-wrap gap-2">
+        <div className="flex-1 min-w-0">
+          <h1 className="text-lg font-semibold text-slate-800 capitalize truncate">
+            {formatDayLabel(workDay.date)}
+          </h1>
+        </div>
+        <nav className="flex-1 flex items-center justify-center gap-4 min-w-0">
           <Link href="/dashboard" className="text-slate-600 hover:text-slate-800">
-            Dashboard
+            Hoje
           </Link>
           <Link href="/relatorios" className="text-slate-600 hover:text-slate-800">
             Relatórios
           </Link>
         </nav>
+        <div className="flex-1 flex items-center justify-end gap-4 min-w-0">
+          <span className="text-slate-500 text-sm truncate max-w-[180px] sm:max-w-none">{user.email}</span>
+          <button
+            type="button"
+            onClick={() => signOut().then(() => router.replace("/login"))}
+            className="text-slate-500 hover:text-slate-700 text-sm flex-shrink-0"
+          >
+            Sair
+          </button>
+        </div>
       </header>
       <main className="max-w-3xl mx-auto p-4 sm:p-6">
         <Link

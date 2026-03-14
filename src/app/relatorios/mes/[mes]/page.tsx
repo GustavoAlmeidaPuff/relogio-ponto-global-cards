@@ -28,7 +28,7 @@ export default function MesPage() {
   const router = useRouter();
   const mes = (params.mes as string) || "";
   const validMes = /^\d{4}-\d{2}$/.test(mes) ? mes : null;
-  const { user, loading: authLoading } = useAuth();
+  const { user, loading: authLoading, signOut } = useAuth();
   const today = (() => {
     const d = new Date();
     return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
@@ -105,18 +105,30 @@ export default function MesPage() {
 
   return (
     <div className="min-h-screen bg-slate-50">
-      <header className="bg-white border-b border-slate-200 px-4 py-3 flex items-center justify-between flex-wrap gap-2">
-        <h1 className="text-lg font-semibold text-slate-800">
-          {monthLabel}
-        </h1>
-        <nav className="flex items-center gap-4">
+      <header className="bg-white border-b border-slate-200 px-4 py-3 flex items-center flex-wrap gap-2">
+        <div className="flex-1 min-w-0">
+          <h1 className="text-lg font-semibold text-slate-800 truncate">
+            {monthLabel}
+          </h1>
+        </div>
+        <nav className="flex-1 flex items-center justify-center gap-4 min-w-0">
           <Link href="/dashboard" className="text-slate-600 hover:text-slate-800">
-            Dashboard
+            Hoje
           </Link>
           <Link href="/relatorios" className="text-slate-600 hover:text-slate-800">
             Relatórios
           </Link>
         </nav>
+        <div className="flex-1 flex items-center justify-end gap-4 min-w-0">
+          <span className="text-slate-500 text-sm truncate max-w-[180px] sm:max-w-none">{user.email}</span>
+          <button
+            type="button"
+            onClick={() => signOut().then(() => router.replace("/login"))}
+            className="text-slate-500 hover:text-slate-700 text-sm flex-shrink-0"
+          >
+            Sair
+          </button>
+        </div>
       </header>
       <main className="max-w-3xl mx-auto p-4 sm:p-6">
         <div className="flex flex-wrap gap-3 mb-6">
