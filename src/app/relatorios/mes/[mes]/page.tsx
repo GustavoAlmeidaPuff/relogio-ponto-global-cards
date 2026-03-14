@@ -98,10 +98,10 @@ export default function MesPage() {
     );
   }
 
-  const monthLabel = new Date(validMes + "-01").toLocaleDateString("pt-BR", {
-    month: "long",
-    year: "numeric",
-  });
+  const monthLabel = new Date(validMes + "-01T12:00:00").toLocaleDateString(
+    "pt-BR",
+    { month: "long", year: "numeric" }
+  );
 
   return (
     <div className="min-h-screen bg-slate-50">

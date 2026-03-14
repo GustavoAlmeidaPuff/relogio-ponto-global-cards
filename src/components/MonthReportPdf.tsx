@@ -103,29 +103,32 @@ export function MonthReportPdf({
           ))}
         </View>
       </Page>
-      {workDays.map((wd) => (
-        <Page key={wd.id} size="A4" style={styles.page}>
-          <View style={styles.dayBlock}>
-            <Text style={styles.dayTitle}>
-              {formatDate(wd.date)} — {formatHours(totalMinutesForDay(wd))}
-            </Text>
-            {wd.punches.map((p, i) => (
-              <Text key={i} style={styles.punchLine}>
-                Entrada {formatTime(p.entry)}
-                {p.exit ? ` → Saída ${formatTime(p.exit)}` : " (em aberto)"}
+      {workDays.map((wd) => {
+        const dayRecords = getDayRecords(wd);
+        return (
+          <Page key={wd.id} size="A4" style={styles.page}>
+            <View style={styles.dayBlock}>
+              <Text style={styles.dayTitle}>
+                {formatDate(wd.date)} — {formatHours(totalMinutesForDay(wd))}
               </Text>
-            ))}
-            {getDayRecords(wd).length > 0 ? (
-              <>
-                <Text style={styles.notesTitle}>O que fiz:</Text>
-                {getDayRecords(wd).map((text, i) => (
-                  <Text key={i} style={styles.notes}>{text}</Text>
-                ))}
-              </>
-            ) : null}
-          </View>
-        </Page>
-      ))}
+              {wd.punches.map((p, i) => (
+                <Text key={i} style={styles.punchLine}>
+                  Entrada {formatTime(p.entry)}
+                  {p.exit ? ` → Saída ${formatTime(p.exit)}` : " (em aberto)"}
+                </Text>
+              ))}
+              {dayRecords.length > 0 ? (
+                <>
+                  <Text style={styles.notesTitle}>O que fiz:</Text>
+                  {dayRecords.map((text, i) => (
+                    <Text key={i} style={styles.notes}>{text}</Text>
+                  ))}
+                </>
+              ) : null}
+            </View>
+          </Page>
+        );
+      })}
     </Document>
   );
 }
