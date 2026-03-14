@@ -6,9 +6,17 @@ import Link from "next/link";
 import { useAuth } from "@/hooks/useAuth";
 import { useWorkDay } from "@/hooks/useWorkDay";
 import { useMonthReport } from "@/hooks/useMonthReport";
-import { ReportMonth } from "@/components/ReportMonth";
+import { totalMinutesForDay, formatHours } from "@/hooks/useMonthReport";
 import { CloseMonthButton } from "@/components/CloseMonthButton";
 import { PdfExportButton } from "@/components/PdfExportButton";
+
+function formatDayDate(dateStr: string): string {
+  return new Date(dateStr + "T12:00:00").toLocaleDateString("pt-BR", {
+    weekday: "long",
+    day: "numeric",
+    month: "short",
+  });
+}
 
 export default function MesPage() {
   const params = useParams();
@@ -67,15 +75,15 @@ export default function MesPage() {
   }
 
   const monthLabel = new Date(validMes + "-01").toLocaleDateString("pt-BR", {
-        month: "long",
-        year: "numeric",
-      });
+    month: "long",
+    year: "numeric",
+  });
 
   return (
     <div className="min-h-screen bg-slate-50">
       <header className="bg-white border-b border-slate-200 px-4 py-3 flex items-center justify-between flex-wrap gap-2">
         <h1 className="text-lg font-semibold text-slate-800">
-          Relatório — {monthLabel}
+          {monthLabel}
         </h1>
         <nav className="flex items-center gap-4">
           <Link href="/dashboard" className="text-slate-600 hover:text-slate-800">
@@ -103,16 +111,60 @@ export default function MesPage() {
             closedAt={closedAt}
           />
         </div>
+
         {loading ? (
           <p className="text-slate-500">Carregando...</p>
         ) : (
-          <ReportMonth
-            month={validMes}
-            workDays={workDays}
-            weekSummaries={weekSummaries}
-            totalMinutes={totalMinutes}
-            closedAt={closedAt}
-          />
+          <>
+            <section className="mb-6">
+              <h2 className="text-lg font-semibold text-slate-800 mb-1">
+                Resumo do mês
+              </h2>
+              <p className="text-slate-700">
+                Total: <strong>{formatHours(totalMinutes)}</strong> (
+                {workDays.length} dia{workDays.length !== 1 ? "s" : ""} com
+                registro)
+              </p>
+            </section>
+
+            <section>
+              <h2 className="text-lg font-semibold text-slate-800 mb-3">
+                Dias registrados
+              </h2>
+              <p className="text-slate-600 text-sm mb-3">
+                Clique no dia para ver todos os registros (entrada/saída e o que
+                você fez).
+              </p>
+              {workDays.length === 0 ? (
+                <p className="text-slate-500 py-4">
+                  Nenhum dia registrado neste mês.
+                </p>
+              ) : (
+                <ul className="space-y-2">
+                  {workDays.map((wd) => (
+                    <li key={wd.id}>
+                      <Link
+                        href={`/relatorios/mes/${validMes}/dia/${wd.date}`}
+                        className="block p-4 bg-white rounded-lg border border-slate-200 hover:border-blue-300 hover:bg-slate-50 transition"
+                      >
+                        <div className="flex justify-between items-center flex-wrap gap-2">
+                          <span className="font-medium text-slate-800 capitalize">
+                            {formatDayDate(wd.date)}
+                          </span>
+                          <span className="text-slate-600 font-medium">
+                            {formatHours(totalMinutesForDay(wd))}
+                          </span>
+                        </div>
+                        <span className="text-slate-500 text-sm mt-1 inline-block">
+                          Ver registros do dia →
+                        </span>
+                      </Link>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </section>
+          </>
         )}
       </main>
     </div>
