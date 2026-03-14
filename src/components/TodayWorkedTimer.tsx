@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import type { Punch } from "@/types";
 import type { Timestamp } from "firebase/firestore";
 import {
@@ -8,6 +8,19 @@ import {
   msToHHMMSS,
   type LocalInterval,
 } from "@/lib/workDayTotal";
+
+const REAIS_POR_HORA = 23.08;
+
+function msToReais(ms: number): string {
+  const horas = ms / (1000 * 60 * 60);
+  const reais = horas * REAIS_POR_HORA;
+  return reais.toLocaleString("pt-BR", {
+    style: "currency",
+    currency: "BRL",
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  });
+}
 
 interface TodayWorkedTimerProps {
   punches: Punch[];
@@ -35,6 +48,7 @@ export function TodayWorkedTimer({
     openDetails,
     now
   );
+  const valorReais = useMemo(() => msToReais(totalMs), [totalMs]);
 
   useEffect(() => {
     if (!openIsToday) return;
@@ -52,6 +66,18 @@ export function TodayWorkedTimer({
       >
         {msToHHMMSS(totalMs)}
       </p>
+      {totalMs > 0 && (
+        <p
+          className={`text-sm mt-2 font-medium tabular-nums ${
+            openIsToday ? "text-emerald-700" : "text-slate-600"
+          }`}
+        >
+          {valorReais}
+          <span className="text-slate-500 font-normal text-xs ml-1">
+            (R$ 23,08/h)
+          </span>
+        </p>
+      )}
       {openIsToday && (
         <p className="text-xs text-slate-500 mt-1">Contando...</p>
       )}
