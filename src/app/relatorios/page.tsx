@@ -1,12 +1,12 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useAuth } from "@/hooks/useAuth";
+import { getMonthClosure } from "@/lib/firestore";
 
 function formatMonthLabel(mes: string): string {
-  // Usar meio-dia local para evitar que UTC meia-noite vire o dia anterior no fuso (ex: Brasil)
   return new Date(mes + "-01T12:00:00").toLocaleDateString("pt-BR", {
     month: "long",
     year: "numeric",
@@ -16,10 +16,21 @@ function formatMonthLabel(mes: string): string {
 export default function RelatoriosPage() {
   const { user, loading } = useAuth();
   const router = useRouter();
+  const [currentMonthClosed, setCurrentMonthClosed] = useState(false);
+
+  const now = new Date();
+  const currentMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
 
   useEffect(() => {
     if (!loading && !user) router.replace("/login");
   }, [user, loading, router]);
+
+  useEffect(() => {
+    if (!user?.uid) return;
+    getMonthClosure(user.uid, currentMonth).then((closure) => {
+      setCurrentMonthClosed(!!closure?.closedAt);
+    });
+  }, [user?.uid, currentMonth]);
 
   if (loading || !user) {
     return (
@@ -29,16 +40,18 @@ export default function RelatoriosPage() {
     );
   }
 
-  const now = new Date();
-  const currentMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
-
-  const otherMonths: string[] = [];
-  for (let i = 1; i <= 5; i++) {
-    const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
-    otherMonths.push(
-      `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`
-    );
-  }
+  const otherMonths: string[] = currentMonthClosed
+    ? (() => {
+        const list: string[] = [];
+        for (let i = 1; i <= 5; i++) {
+          const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+          list.push(
+            `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`
+          );
+        }
+        return list;
+      })()
+    : [];
 
   return (
     <div className="min-h-screen bg-slate-50">
@@ -61,7 +74,6 @@ export default function RelatoriosPage() {
           Clique no mês para ver os dias registrados e as horas trabalhadas.
         </p>
 
-        {/* Mês atual em destaque */}
         <section className="mb-6">
           <Link
             href={`/relatorios/mes/${currentMonth}`}
@@ -76,7 +88,6 @@ export default function RelatoriosPage() {
           </Link>
         </section>
 
-        {/* Outros meses */}
         {otherMonths.length > 0 && (
           <section>
             <h3 className="text-sm font-medium text-slate-600 mb-2">
