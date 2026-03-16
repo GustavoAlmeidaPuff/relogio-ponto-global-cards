@@ -175,6 +175,10 @@ export default function MesPage() {
                 {workDays.length} dia{workDays.length !== 1 ? "s" : ""} com
                 registro)
               </p>
+              <p className="text-emerald-700 font-medium mt-1">
+                Total no mês: {minutesToReais(totalMinutes)}
+                <span className="text-slate-500 font-normal text-sm ml-1">(R$ 23,08/h)</span>
+              </p>
             </section>
 
             <section>
