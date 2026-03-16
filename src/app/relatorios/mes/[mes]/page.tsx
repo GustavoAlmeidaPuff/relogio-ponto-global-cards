@@ -15,11 +15,24 @@ import { getWorkDaysInMonth, getMonthClosure } from "@/lib/firestore";
 import { CloseMonthButton } from "@/components/CloseMonthButton";
 import { PdfExportButton } from "@/components/PdfExportButton";
 
+const REAIS_POR_HORA = 23.08;
+
 function formatDayDate(dateStr: string): string {
   return new Date(dateStr + "T12:00:00").toLocaleDateString("pt-BR", {
     weekday: "long",
     day: "numeric",
     month: "short",
+  });
+}
+
+function minutesToReais(minutes: number): string {
+  const horas = minutes / 60;
+  const reais = horas * REAIS_POR_HORA;
+  return reais.toLocaleString("pt-BR", {
+    style: "currency",
+    currency: "BRL",
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
   });
 }
 
@@ -192,6 +205,10 @@ export default function MesPage() {
                             {formatHours(totalMinutesForDay(wd))}
                           </span>
                         </div>
+                        <p className="text-emerald-700 text-sm font-medium mt-1">
+                          {minutesToReais(totalMinutesForDay(wd))}
+                          <span className="text-slate-500 font-normal"> (R$ 23,08/h)</span>
+                        </p>
                         <span className="text-slate-500 text-sm mt-1 inline-block">
                           Ver registros do dia →
                         </span>
