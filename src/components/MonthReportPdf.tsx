@@ -47,6 +47,42 @@ function getDayRecords(wd: WorkDay): string[] {
   return [];
 }
 
+/** Altura aproximada em pt (A4) para quebrar página: quantos dias cabem. */
+const PAGE_USABLE_HEIGHT_PT = 750;
+const DAY_BLOCK_BASE_PT = 95;
+const PUNCH_LINE_PT = 18;
+const FEITOS_HEADER_PT = 28;
+const FEITO_ITEM_PT = 14;
+
+function estimateDayHeightPt(wd: WorkDay): number {
+  const records = getDayRecords(wd);
+  return (
+    DAY_BLOCK_BASE_PT +
+    wd.punches.length * PUNCH_LINE_PT +
+    (records.length > 0 ? FEITOS_HEADER_PT + records.length * FEITO_ITEM_PT : 0)
+  );
+}
+
+/** Agrupa workDays em páginas: cada página recebe quantos dias couberem pela altura estimada. */
+function chunkDaysToPages(workDays: WorkDay[]): WorkDay[][] {
+  const chunks: WorkDay[][] = [];
+  let currentChunk: WorkDay[] = [];
+  let currentHeight = 0;
+
+  for (const wd of workDays) {
+    const h = estimateDayHeightPt(wd);
+    if (currentChunk.length > 0 && currentHeight + h > PAGE_USABLE_HEIGHT_PT) {
+      chunks.push(currentChunk);
+      currentChunk = [];
+      currentHeight = 0;
+    }
+    currentChunk.push(wd);
+    currentHeight += h;
+  }
+  if (currentChunk.length > 0) chunks.push(currentChunk);
+  return chunks;
+}
+
 const colors = {
   primary: "#1e40af",
   primaryLight: "#3b82f6",
@@ -209,47 +245,40 @@ export function MonthReportPdf({
           </View>
         </View>
       </Page>
-      {(() => {
-        const DAYS_PER_PAGE = 3;
-        const chunks: WorkDay[][] = [];
-        for (let i = 0; i < workDays.length; i += DAYS_PER_PAGE) {
-          chunks.push(workDays.slice(i, i + DAYS_PER_PAGE));
-        }
-        return chunks.map((chunk, chunkIndex) => (
-          <Page key={chunkIndex} size="A4" style={styles.page}>
-            <View style={styles.daysPageBody}>
-              {chunk.map((wd) => {
-                const dayRecords = getDayRecords(wd);
-                return (
-                  <View key={wd.id} style={styles.dayBlock}>
-                    <Text style={styles.dayTitle}>
-                      {formatDate(wd.date)} — {formatHours(totalMinutesForDay(wd))}
+      {chunkDaysToPages(workDays).map((chunk, chunkIndex) => (
+        <Page key={chunkIndex} size="A4" style={styles.page}>
+          <View style={styles.daysPageBody}>
+            {chunk.map((wd) => {
+              const dayRecords = getDayRecords(wd);
+              return (
+                <View key={wd.id} style={styles.dayBlock}>
+                  <Text style={styles.dayTitle}>
+                    {formatDate(wd.date)} — {formatHours(totalMinutesForDay(wd))}
+                  </Text>
+                  {wd.punches.map((p, i) => (
+                    <Text key={i} style={styles.punchLine}>
+                      Entrada {formatTime(p.entry)}
+                      {p.exit
+                        ? ` → Saída ${formatTime(p.exit)}`
+                        : " (em aberto)"}
                     </Text>
-                    {wd.punches.map((p, i) => (
-                      <Text key={i} style={styles.punchLine}>
-                        Entrada {formatTime(p.entry)}
-                        {p.exit
-                          ? ` → Saída ${formatTime(p.exit)}`
-                          : " (em aberto)"}
-                      </Text>
-                    ))}
-                    {dayRecords.length > 0 ? (
-                      <>
-                        <Text style={styles.feitosTitle}>Feitos:</Text>
-                        {dayRecords.map((text, i) => (
-                          <Text key={i} style={styles.feitosItem}>
-                            • {text}
-                          </Text>
-                        ))}
-                      </>
-                    ) : null}
-                  </View>
-                );
-              })}
-            </View>
-          </Page>
-        ));
-      })()}
+                  ))}
+                  {dayRecords.length > 0 ? (
+                    <>
+                      <Text style={styles.feitosTitle}>Feitos:</Text>
+                      {dayRecords.map((text, i) => (
+                        <Text key={i} style={styles.feitosItem}>
+                          • {text}
+                        </Text>
+                      ))}
+                    </>
+                  ) : null}
+                </View>
+              );
+            })}
+          </View>
+        </Page>
+      ))}
     </Document>
   );
 }
