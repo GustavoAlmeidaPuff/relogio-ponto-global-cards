@@ -116,13 +116,18 @@ const styles = StyleSheet.create({
   },
   weekLabel: { fontSize: 10, color: colors.text },
   weekTotal: { fontSize: 10, fontWeight: "bold", color: colors.primary },
-  dayPageBody: { paddingHorizontal: 40, paddingTop: 24, paddingBottom: 40 },
+  daysPageBody: {
+    paddingHorizontal: 40,
+    paddingTop: 20,
+    paddingBottom: 40,
+  },
   dayBlock: {
     backgroundColor: colors.bgCard,
     padding: 18,
     borderRadius: 8,
     borderWidth: 1,
     borderColor: colors.border,
+    marginBottom: 16,
   },
   dayTitle: {
     fontSize: 13,
@@ -204,38 +209,47 @@ export function MonthReportPdf({
           </View>
         </View>
       </Page>
-      {workDays.map((wd) => {
-        const dayRecords = getDayRecords(wd);
-        return (
-          <Page key={wd.id} size="A4" style={styles.page}>
-            <View style={styles.dayPageBody}>
-              <View style={styles.dayBlock}>
-                <Text style={styles.dayTitle}>
-                  {formatDate(wd.date)} — {formatHours(totalMinutesForDay(wd))}
-                </Text>
-                {wd.punches.map((p, i) => (
-                  <Text key={i} style={styles.punchLine}>
-                    Entrada {formatTime(p.entry)}
-                    {p.exit
-                      ? ` → Saída ${formatTime(p.exit)}`
-                      : " (em aberto)"}
-                  </Text>
-                ))}
-                {dayRecords.length > 0 ? (
-                  <>
-                    <Text style={styles.feitosTitle}>Feitos:</Text>
-                    {dayRecords.map((text, i) => (
-                      <Text key={i} style={styles.feitosItem}>
-                        • {text}
+      {(() => {
+        const DAYS_PER_PAGE = 3;
+        const chunks: WorkDay[][] = [];
+        for (let i = 0; i < workDays.length; i += DAYS_PER_PAGE) {
+          chunks.push(workDays.slice(i, i + DAYS_PER_PAGE));
+        }
+        return chunks.map((chunk, chunkIndex) => (
+          <Page key={chunkIndex} size="A4" style={styles.page}>
+            <View style={styles.daysPageBody}>
+              {chunk.map((wd) => {
+                const dayRecords = getDayRecords(wd);
+                return (
+                  <View key={wd.id} style={styles.dayBlock}>
+                    <Text style={styles.dayTitle}>
+                      {formatDate(wd.date)} — {formatHours(totalMinutesForDay(wd))}
+                    </Text>
+                    {wd.punches.map((p, i) => (
+                      <Text key={i} style={styles.punchLine}>
+                        Entrada {formatTime(p.entry)}
+                        {p.exit
+                          ? ` → Saída ${formatTime(p.exit)}`
+                          : " (em aberto)"}
                       </Text>
                     ))}
-                  </>
-                ) : null}
-              </View>
+                    {dayRecords.length > 0 ? (
+                      <>
+                        <Text style={styles.feitosTitle}>Feitos:</Text>
+                        {dayRecords.map((text, i) => (
+                          <Text key={i} style={styles.feitosItem}>
+                            • {text}
+                          </Text>
+                        ))}
+                      </>
+                    ) : null}
+                  </View>
+                );
+              })}
             </View>
           </Page>
-        );
-      })}
+        ));
+      })()}
     </Document>
   );
 }
