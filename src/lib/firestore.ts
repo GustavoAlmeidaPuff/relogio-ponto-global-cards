@@ -343,4 +343,39 @@ export async function getMonthClosure(
   return { closedAt: snap.data().closedAt } as { closedAt: Timestamp };
 }
 
+/** Cria ou atualiza os punches de um dia (edição manual de horários). */
+export async function upsertWorkDayPunches(
+  userId: string,
+  date: string,
+  punches: Punch[]
+): Promise<void> {
+  const id = workDayId(userId, date);
+  const ref = doc(getDb(), WORK_DAYS, id);
+  const existing = await getDoc(ref);
+  const totalWorkedMs = punches.reduce((acc, p) => {
+    if (p.entry && p.exit) {
+      return acc + (p.exit.toMillis() - p.entry.toMillis());
+    }
+    return acc;
+  }, 0);
+  if (existing.exists()) {
+    await updateDoc(ref, {
+      punches,
+      totalWorkedMs,
+      updatedAt: serverTimestamp(),
+    });
+  } else {
+    await setDoc(ref, {
+      userId,
+      date,
+      punches,
+      notes: "",
+      records: [],
+      totalWorkedMs,
+      createdAt: serverTimestamp(),
+      updatedAt: serverTimestamp(),
+    });
+  }
+}
+
 export { workDayId, monthClosureId };

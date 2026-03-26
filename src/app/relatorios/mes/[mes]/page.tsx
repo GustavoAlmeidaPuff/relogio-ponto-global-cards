@@ -1,7 +1,7 @@
 "use client";
 
 import { useParams, useRouter } from "next/navigation";
-import { useEffect, useMemo, useCallback } from "react";
+import { useEffect, useMemo, useCallback, useState } from "react";
 import Link from "next/link";
 import { useAuth } from "@/hooks/useAuth";
 import { useWorkDay } from "@/hooks/useWorkDay";
@@ -58,6 +58,9 @@ export default function MesPage() {
       workDay.date === today
     );
   }, [workDay, today]);
+  const [showAddDay, setShowAddDay] = useState(false);
+  const [addDayDate, setAddDayDate] = useState("");
+
   const {
     workDays,
     totalMinutes,
@@ -66,6 +69,11 @@ export default function MesPage() {
     loading,
     refresh,
   } = useMonthReport(user?.uid, validMes ?? "2000-01");
+
+  function handleGoToDay() {
+    if (!addDayDate) return;
+    router.push(`/relatorios/mes/${validMes}/dia/${addDayDate}`);
+  }
 
   const prepareExport = useCallback(async () => {
     if (!user?.uid || !validMes) {
@@ -182,9 +190,38 @@ export default function MesPage() {
             </section>
 
             <section>
-              <h2 className="text-lg font-semibold text-slate-800 mb-3">
-                Dias registrados
-              </h2>
+              <div className="flex items-center justify-between flex-wrap gap-2 mb-1">
+                <h2 className="text-lg font-semibold text-slate-800">
+                  Dias registrados
+                </h2>
+                <button
+                  type="button"
+                  onClick={() => { setShowAddDay((v) => !v); setAddDayDate(""); }}
+                  className="text-sm text-blue-600 hover:text-blue-800 font-medium"
+                >
+                  {showAddDay ? "Cancelar" : "+ Adicionar dia ausente"}
+                </button>
+              </div>
+              {showAddDay && (
+                <div className="mb-3 p-3 bg-white border border-slate-200 rounded-lg flex items-center gap-3 flex-wrap">
+                  <input
+                    type="date"
+                    value={addDayDate}
+                    min={`${validMes}-01`}
+                    max={`${validMes}-${String(new Date(Number(validMes.split("-")[0]), Number(validMes.split("-")[1]), 0).getDate()).padStart(2, "0")}`}
+                    onChange={(e) => setAddDayDate(e.target.value)}
+                    className="border border-slate-300 rounded px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
+                  />
+                  <button
+                    type="button"
+                    onClick={handleGoToDay}
+                    disabled={!addDayDate}
+                    className="px-3 py-1 bg-blue-600 text-white rounded text-sm font-medium hover:bg-blue-700 disabled:opacity-50"
+                  >
+                    Ir para o dia
+                  </button>
+                </div>
+              )}
               <p className="text-slate-600 text-sm mb-3">
                 Clique no dia para ver todos os registros (entrada/saída e o que
                 você fez).
