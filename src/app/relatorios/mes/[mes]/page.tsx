@@ -45,6 +45,11 @@ function minutesToReais(minutes: number): string {
   });
 }
 
+const TAXA_HORA_LABEL = `R$ ${REAIS_POR_HORA.toLocaleString("pt-BR", {
+  minimumFractionDigits: 2,
+  maximumFractionDigits: 2,
+})}/h`;
+
 function formatBalance(minutes: number): { text: string; className: string } {
   if (minutes === 0) return { text: "No horário", className: "text-slate-500" };
   const abs = Math.abs(minutes);
@@ -117,13 +122,12 @@ export default function MesPage() {
 
     return Array.from(weekMap.entries())
       .sort((a, b) => a[0].localeCompare(b[0]))
-      .map(([, { dates, weekLabel }]) => {
+      .map(([weekKey, { dates, weekLabel }]) => {
         const pastDates = dates.filter((d) => d <= today);
         const expectedMinutes = pastDates.reduce((acc, d) => acc + expectedMinutesForDate(d), 0);
         const workedMinutes = dates.reduce((acc, d) => acc + (workedByDate.get(d) ?? 0), 0);
         const balance = workedMinutes - expectedMinutes;
-        const recordedDays = workDays.filter((wd) => dates.includes(wd.date));
-        return { weekLabel, expectedMinutes, workedMinutes, balance, recordedDays };
+        return { weekKey, weekLabel, expectedMinutes, workedMinutes, balance };
       });
   }, [validMes, today, workDays]);
 
@@ -248,23 +252,44 @@ export default function MesPage() {
               <h2 className="text-lg font-semibold text-slate-800 mb-3">
                 Resumo do mês
               </h2>
-              <div className="grid grid-cols-2 gap-x-6 gap-y-1 text-sm mb-3">
-                <span className="text-slate-500">Trabalhado</span>
-                <span className="font-medium text-slate-800">{formatHours(totalMinutes)}</span>
+              <div className="grid grid-cols-2 gap-x-4 sm:gap-x-6 gap-y-1 text-sm mb-3 min-w-0">
+                <span className="text-slate-500 min-w-0">Trabalhado</span>
+                <span className="font-medium text-slate-800 text-right sm:text-left min-w-0 tabular-nums">
+                  {formatHours(totalMinutes)}
+                </span>
                 <span className="text-slate-500">Esperado</span>
-                <span className="font-medium text-slate-800">{formatHours(expectedMonthMinutes)}</span>
+                <span className="font-medium text-slate-800 text-right sm:text-left tabular-nums">
+                  {formatHours(expectedMonthMinutes)}
+                </span>
                 <span className="text-slate-500">Saldo</span>
-                <span className={formatBalance(monthBalance).className}>{formatBalance(monthBalance).text}</span>
+                <span className={formatBalance(monthBalance).className + " text-right sm:text-left"}>
+                  {formatBalance(monthBalance).text}
+                </span>
                 {monthBalance > 0 && (
                   <>
                     <span className="text-slate-500">Ganho extra</span>
-                    <span className="text-emerald-700 font-semibold">{minutesToReais(monthBalance)}</span>
+                    <span className="text-emerald-700 font-semibold text-right sm:text-left tabular-nums">
+                      {minutesToReais(monthBalance)}
+                    </span>
+                  </>
+                )}
+                {monthBalance < 0 && (
+                  <>
+                    <span className="text-slate-500">Abaixo da meta (R$)</span>
+                    <span className="text-red-600 font-semibold text-right sm:text-left tabular-nums">
+                      {minutesToReais(monthBalance)}
+                    </span>
                   </>
                 )}
               </div>
+              <p className="text-slate-600 text-xs mb-2">
+                Meta: 34h/semana (5h seg–sex, 9h sábado). Domingo sem meta.
+              </p>
               <p className="text-emerald-700 font-medium text-sm border-t border-slate-100 pt-2">
                 Total bruto: {minutesToReais(totalMinutes)}
-                <span className="text-slate-400 font-normal ml-1">({workDays.length} dia{workDays.length !== 1 ? "s" : ""} • R$ 23,08/h)</span>
+                <span className="text-slate-400 font-normal ml-1">
+                  ({workDays.length} dia{workDays.length !== 1 ? "s" : ""} • {TAXA_HORA_LABEL})
+                </span>
               </p>
             </section>
 
@@ -274,19 +299,35 @@ export default function MesPage() {
                 {weeksAnalysis.map((week) => {
                   const bal = formatBalance(week.balance);
                   return (
-                    <div key={week.weekLabel} className="p-3 bg-white rounded-lg border border-slate-200">
-                      <p className="font-medium text-slate-700 mb-2 text-sm">{week.weekLabel}</p>
-                      <div className="grid grid-cols-2 gap-x-6 gap-y-1 text-sm">
+                    <div key={week.weekKey} className="p-3 bg-white rounded-lg border border-slate-200 min-w-0">
+                      <p className="font-medium text-slate-700 mb-2 text-sm break-words">
+                        Semana {week.weekLabel}
+                      </p>
+                      <div className="grid grid-cols-2 gap-x-4 sm:gap-x-6 gap-y-1 text-sm min-w-0">
                         <span className="text-slate-500">Trabalhado</span>
-                        <span className="font-medium text-slate-800">{formatHours(week.workedMinutes)}</span>
+                        <span className="font-medium text-slate-800 text-right sm:text-left tabular-nums">
+                          {formatHours(week.workedMinutes)}
+                        </span>
                         <span className="text-slate-500">Esperado</span>
-                        <span className="font-medium text-slate-800">{formatHours(week.expectedMinutes)}</span>
+                        <span className="font-medium text-slate-800 text-right sm:text-left tabular-nums">
+                          {formatHours(week.expectedMinutes)}
+                        </span>
                         <span className="text-slate-500">Saldo</span>
-                        <span className={bal.className}>{bal.text}</span>
+                        <span className={bal.className + " text-right sm:text-left"}>{bal.text}</span>
                         {week.balance > 0 && (
                           <>
                             <span className="text-slate-500">Ganho extra</span>
-                            <span className="text-emerald-700 font-semibold">{minutesToReais(week.balance)}</span>
+                            <span className="text-emerald-700 font-semibold text-right sm:text-left tabular-nums">
+                              {minutesToReais(week.balance)}
+                            </span>
+                          </>
+                        )}
+                        {week.balance < 0 && (
+                          <>
+                            <span className="text-slate-500">Abaixo da meta (R$)</span>
+                            <span className="text-red-600 font-semibold text-right sm:text-left tabular-nums">
+                              {minutesToReais(week.balance)}
+                            </span>
                           </>
                         )}
                       </div>
@@ -358,21 +399,33 @@ export default function MesPage() {
                               {formatHours(worked)}
                             </span>
                           </div>
-                          <div className="grid grid-cols-2 gap-x-4 gap-y-0.5 text-sm mb-1">
+                          <div className="grid grid-cols-2 gap-x-4 gap-y-0.5 text-sm mb-1 min-w-0">
                             <span className="text-slate-500">Esperado</span>
-                            <span className="text-slate-700">{formatHours(expected)}</span>
+                            <span className="text-slate-700 text-right sm:text-left tabular-nums">
+                              {formatHours(expected)}
+                            </span>
                             <span className="text-slate-500">Saldo</span>
-                            <span className={bal.className}>{bal.text}</span>
+                            <span className={bal.className + " text-right sm:text-left"}>{bal.text}</span>
                             {dayBalance > 0 && (
                               <>
                                 <span className="text-slate-500">Ganho extra</span>
-                                <span className="text-emerald-700 font-semibold">{minutesToReais(dayBalance)}</span>
+                                <span className="text-emerald-700 font-semibold text-right sm:text-left tabular-nums">
+                                  {minutesToReais(dayBalance)}
+                                </span>
+                              </>
+                            )}
+                            {dayBalance < 0 && (
+                              <>
+                                <span className="text-slate-500">Abaixo da meta (R$)</span>
+                                <span className="text-red-600 font-semibold text-right sm:text-left tabular-nums">
+                                  {minutesToReais(dayBalance)}
+                                </span>
                               </>
                             )}
                           </div>
                           <p className="text-emerald-700 text-xs font-medium">
                             Bruto do dia: {minutesToReais(worked)}
-                            <span className="text-slate-400 font-normal ml-1">(R$ 23,08/h)</span>
+                            <span className="text-slate-400 font-normal ml-1">({TAXA_HORA_LABEL})</span>
                           </p>
                           <span className="text-slate-400 text-xs mt-1 inline-block">
                             Ver registros →
