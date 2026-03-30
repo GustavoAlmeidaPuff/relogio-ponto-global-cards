@@ -16,6 +16,15 @@ import { CloseMonthButton } from "@/components/CloseMonthButton";
 import { PdfExportButton } from "@/components/PdfExportButton";
 
 const REAIS_POR_HORA = 23.08;
+const MINUTOS_DIA_SEMANA = 5 * 60; // 300 min (seg-sex)
+const MINUTOS_SABADO = 9 * 60;     // 540 min
+
+function expectedMinutesForDate(dateStr: string): number {
+  const dow = new Date(dateStr + "T12:00:00").getDay();
+  if (dow === 6) return MINUTOS_SABADO;
+  if (dow === 0) return 0;
+  return MINUTOS_DIA_SEMANA;
+}
 
 function formatDayDate(dateStr: string): string {
   return new Date(dateStr + "T12:00:00").toLocaleDateString("pt-BR", {
@@ -34,6 +43,16 @@ function minutesToReais(minutes: number): string {
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
   });
+}
+
+function formatBalance(minutes: number): { text: string; className: string } {
+  if (minutes === 0) return { text: "No horário", className: "text-slate-500" };
+  const abs = Math.abs(minutes);
+  const h = Math.floor(abs / 60);
+  const m = abs % 60;
+  const hStr = `${h}h ${String(m).padStart(2, "0")}min`;
+  if (minutes > 0) return { text: `+${hStr} extras`, className: "text-emerald-700 font-semibold" };
+  return { text: `-${hStr} faltando`, className: "text-red-600 font-semibold" };
 }
 
 export default function MesPage() {
@@ -69,6 +88,57 @@ export default function MesPage() {
     loading,
     refresh,
   } = useMonthReport(user?.uid, validMes ?? "2000-01");
+
+  // Diagnóstico de horas: esperado vs trabalhado
+  const weeksAnalysis = useMemo(() => {
+    if (!validMes) return [];
+    const [year, mon] = validMes.split("-").map(Number);
+    const firstDay = new Date(year, mon - 1, 1);
+    const lastDay = new Date(year, mon, 0);
+
+    const workedByDate = new Map<string, number>();
+    for (const wd of workDays) workedByDate.set(wd.date, totalMinutesForDay(wd));
+
+    const weekMap = new Map<string, { dates: string[]; weekLabel: string }>();
+    for (const d = new Date(firstDay); d <= lastDay; d.setDate(d.getDate() + 1)) {
+      const dateStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+      const dow = d.getDay();
+      const ws = new Date(d);
+      ws.setDate(d.getDate() - dow + (dow === 0 ? -6 : 1));
+      const weekKey = `${ws.getFullYear()}-${String(ws.getMonth() + 1).padStart(2, "0")}-${String(ws.getDate()).padStart(2, "0")}`;
+      if (!weekMap.has(weekKey)) {
+        const we = new Date(ws);
+        we.setDate(ws.getDate() + 6);
+        const weekLabel = `${ws.getDate()}/${ws.getMonth() + 1} – ${we.getDate()}/${we.getMonth() + 1}`;
+        weekMap.set(weekKey, { dates: [], weekLabel });
+      }
+      weekMap.get(weekKey)!.dates.push(dateStr);
+    }
+
+    return Array.from(weekMap.entries())
+      .sort((a, b) => a[0].localeCompare(b[0]))
+      .map(([, { dates, weekLabel }]) => {
+        const pastDates = dates.filter((d) => d <= today);
+        const expectedMinutes = pastDates.reduce((acc, d) => acc + expectedMinutesForDate(d), 0);
+        const workedMinutes = dates.reduce((acc, d) => acc + (workedByDate.get(d) ?? 0), 0);
+        const balance = workedMinutes - expectedMinutes;
+        const recordedDays = workDays.filter((wd) => dates.includes(wd.date));
+        return { weekLabel, expectedMinutes, workedMinutes, balance, recordedDays };
+      });
+  }, [validMes, today, workDays]);
+
+  const { expectedMonthMinutes, monthBalance } = useMemo(() => {
+    if (!validMes) return { expectedMonthMinutes: 0, monthBalance: 0 };
+    const [year, mon] = validMes.split("-").map(Number);
+    const firstDay = new Date(year, mon - 1, 1);
+    const lastDay = new Date(year, mon, 0);
+    let expected = 0;
+    for (const d = new Date(firstDay); d <= lastDay; d.setDate(d.getDate() + 1)) {
+      const dateStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+      if (dateStr <= today) expected += expectedMinutesForDate(dateStr);
+    }
+    return { expectedMonthMinutes: expected, monthBalance: totalMinutes - expected };
+  }, [validMes, today, totalMinutes]);
 
   function handleGoToDay() {
     if (!addDayDate) return;
@@ -174,19 +244,56 @@ export default function MesPage() {
           <p className="text-slate-500">Carregando...</p>
         ) : (
           <>
-            <section className="mb-6">
-              <h2 className="text-lg font-semibold text-slate-800 mb-1">
+            <section className="mb-6 p-4 bg-white rounded-lg border border-slate-200">
+              <h2 className="text-lg font-semibold text-slate-800 mb-3">
                 Resumo do mês
               </h2>
-              <p className="text-slate-700">
-                Total: <strong>{formatHours(totalMinutes)}</strong> (
-                {workDays.length} dia{workDays.length !== 1 ? "s" : ""} com
-                registro)
+              <div className="grid grid-cols-2 gap-x-6 gap-y-1 text-sm mb-3">
+                <span className="text-slate-500">Trabalhado</span>
+                <span className="font-medium text-slate-800">{formatHours(totalMinutes)}</span>
+                <span className="text-slate-500">Esperado</span>
+                <span className="font-medium text-slate-800">{formatHours(expectedMonthMinutes)}</span>
+                <span className="text-slate-500">Saldo</span>
+                <span className={formatBalance(monthBalance).className}>{formatBalance(monthBalance).text}</span>
+                {monthBalance > 0 && (
+                  <>
+                    <span className="text-slate-500">Ganho extra</span>
+                    <span className="text-emerald-700 font-semibold">{minutesToReais(monthBalance)}</span>
+                  </>
+                )}
+              </div>
+              <p className="text-emerald-700 font-medium text-sm border-t border-slate-100 pt-2">
+                Total bruto: {minutesToReais(totalMinutes)}
+                <span className="text-slate-400 font-normal ml-1">({workDays.length} dia{workDays.length !== 1 ? "s" : ""} • R$ 23,08/h)</span>
               </p>
-              <p className="text-emerald-700 font-medium mt-1">
-                Total no mês: {minutesToReais(totalMinutes)}
-                <span className="text-slate-500 font-normal text-sm ml-1">(R$ 23,08/h)</span>
-              </p>
+            </section>
+
+            <section className="mb-6">
+              <h2 className="text-lg font-semibold text-slate-800 mb-3">Semanas</h2>
+              <div className="space-y-2">
+                {weeksAnalysis.map((week) => {
+                  const bal = formatBalance(week.balance);
+                  return (
+                    <div key={week.weekLabel} className="p-3 bg-white rounded-lg border border-slate-200">
+                      <p className="font-medium text-slate-700 mb-2 text-sm">{week.weekLabel}</p>
+                      <div className="grid grid-cols-2 gap-x-6 gap-y-1 text-sm">
+                        <span className="text-slate-500">Trabalhado</span>
+                        <span className="font-medium text-slate-800">{formatHours(week.workedMinutes)}</span>
+                        <span className="text-slate-500">Esperado</span>
+                        <span className="font-medium text-slate-800">{formatHours(week.expectedMinutes)}</span>
+                        <span className="text-slate-500">Saldo</span>
+                        <span className={bal.className}>{bal.text}</span>
+                        {week.balance > 0 && (
+                          <>
+                            <span className="text-slate-500">Ganho extra</span>
+                            <span className="text-emerald-700 font-semibold">{minutesToReais(week.balance)}</span>
+                          </>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
             </section>
 
             <section>
@@ -232,30 +339,48 @@ export default function MesPage() {
                 </p>
               ) : (
                 <ul className="space-y-2">
-                  {workDays.map((wd) => (
-                    <li key={wd.id}>
-                      <Link
-                        href={`/relatorios/mes/${validMes}/dia/${wd.date}`}
-                        className="block p-4 bg-white rounded-lg border border-slate-200 hover:border-blue-300 hover:bg-slate-50 transition"
-                      >
-                        <div className="flex justify-between items-center flex-wrap gap-2">
-                          <span className="font-medium text-slate-800 capitalize">
-                            {formatDayDate(wd.date)}
+                  {workDays.map((wd) => {
+                    const worked = totalMinutesForDay(wd);
+                    const expected = expectedMinutesForDate(wd.date);
+                    const dayBalance = worked - expected;
+                    const bal = formatBalance(dayBalance);
+                    return (
+                      <li key={wd.id}>
+                        <Link
+                          href={`/relatorios/mes/${validMes}/dia/${wd.date}`}
+                          className="block p-4 bg-white rounded-lg border border-slate-200 hover:border-blue-300 hover:bg-slate-50 transition"
+                        >
+                          <div className="flex justify-between items-center flex-wrap gap-2 mb-2">
+                            <span className="font-medium text-slate-800 capitalize">
+                              {formatDayDate(wd.date)}
+                            </span>
+                            <span className="text-slate-600 font-medium">
+                              {formatHours(worked)}
+                            </span>
+                          </div>
+                          <div className="grid grid-cols-2 gap-x-4 gap-y-0.5 text-sm mb-1">
+                            <span className="text-slate-500">Esperado</span>
+                            <span className="text-slate-700">{formatHours(expected)}</span>
+                            <span className="text-slate-500">Saldo</span>
+                            <span className={bal.className}>{bal.text}</span>
+                            {dayBalance > 0 && (
+                              <>
+                                <span className="text-slate-500">Ganho extra</span>
+                                <span className="text-emerald-700 font-semibold">{minutesToReais(dayBalance)}</span>
+                              </>
+                            )}
+                          </div>
+                          <p className="text-emerald-700 text-xs font-medium">
+                            Bruto do dia: {minutesToReais(worked)}
+                            <span className="text-slate-400 font-normal ml-1">(R$ 23,08/h)</span>
+                          </p>
+                          <span className="text-slate-400 text-xs mt-1 inline-block">
+                            Ver registros →
                           </span>
-                          <span className="text-slate-600 font-medium">
-                            {formatHours(totalMinutesForDay(wd))}
-                          </span>
-                        </div>
-                        <p className="text-emerald-700 text-sm font-medium mt-1">
-                          {minutesToReais(totalMinutesForDay(wd))}
-                          <span className="text-slate-500 font-normal"> (R$ 23,08/h)</span>
-                        </p>
-                        <span className="text-slate-500 text-sm mt-1 inline-block">
-                          Ver registros do dia →
-                        </span>
-                      </Link>
-                    </li>
-                  ))}
+                        </Link>
+                      </li>
+                    );
+                  })}
                 </ul>
               )}
             </section>
