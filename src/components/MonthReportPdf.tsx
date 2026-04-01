@@ -403,21 +403,49 @@ function FortnightPdfCard({
         {b.daysWithRecords} dia{b.daysWithRecords !== 1 ? "s" : ""} com ponto
       </Text>
 
+      <View style={[styles.fortnightTotalBlock, { marginTop: 0 }]}>
+        <Text style={styles.fortnightTotalLabel}>Conta principal (tempo batido)</Text>
+        <Text style={[styles.fortnightCheckLine, { marginTop: 0 }]}>
+          O que multiplica {formatEarningsBRL(REAIS_POR_HORA_NORMAL)}/h são{" "}
+          {formatHours(b.clockNormalMinutes)}, não as {formatHours(b.referenceNormalMinutes)} da
+          referência de calendário abaixo.
+        </Text>
+        <Text style={[styles.fortnightBody, { marginTop: 6 }]}>
+          {formatHours(b.clockNormalMinutes)} × {formatEarningsBRL(REAIS_POR_HORA_NORMAL)}/h ={" "}
+          {formatEarningsBRL(b.clockNormalValue)}
+        </Text>
+        {hasExtra ? (
+          <>
+            <Text style={[styles.fortnightBody, { marginTop: 6, fontSize: 8, color: colors.textMuted }]}>
+              Trecho do mesmo total ({formatHours(b.totalMinutes)}) acima da jornada do dia:
+            </Text>
+            <Text style={[styles.fortnightBody, { marginTop: 2 }]}>
+              {formatHours(b.extraMinutes)} × {formatEarningsBRL(REAIS_POR_HORA_EXTRA)}/h = +
+              {formatEarningsBRL(b.extraValue)}
+            </Text>
+          </>
+        ) : null}
+        <Text style={[styles.fortnightTotalValue, { marginTop: 8 }]}>
+          Total da quinzena: {formatEarningsBRL(b.totalValue)}
+        </Text>
+        <Text style={styles.fortnightCheckLine}>
+          Tempo: {formatHours(b.clockNormalMinutes)}
+          {hasExtra ? ` + ${formatHours(b.extraMinutes)}` : ""} = {formatHours(b.totalMinutes)}
+        </Text>
+      </View>
+
+      <Text style={[styles.fortnightBody, { fontSize: 8, color: colors.textMuted, marginBottom: 6 }]}>
+        Mesmo total em reais (caminho calendário − falta + trechos extra):
+      </Text>
+
       <View style={styles.fortnightBlock}>
-        <Text style={styles.fortnightBlockLabel}>Referência de jornada normal</Text>
+        <Text style={styles.fortnightBlockLabel}>Referência de calendário (não é o total batido)</Text>
         <Text style={[styles.fortnightBody, { fontSize: 8, color: colors.textMuted }]}>
-          {JORNADA_REFERENCIA_RESUMO} Soma da jornada prevista por calendário (segunda a
-          sábado) na quinzena; dia útil sem ponto conta como falta integral no desconto.
+          {JORNADA_REFERENCIA_RESUMO} Meta do período para medir falta.
         </Text>
         <Text style={[styles.fortnightBody, { marginTop: 4 }]}>
-          {formatHours(b.referenceNormalMinutes)} × {formatEarningsBRL(REAIS_POR_HORA_NORMAL)}
-          /h
-        </Text>
-        <Text style={styles.fortnightEmphasis}>
-          = {formatEarningsBRL(b.referenceNormalValue)}
-        </Text>
-        <Text style={[styles.fortnightBody, { marginTop: 4, fontSize: 8, color: colors.textMuted }]}>
-          ({formatHours(b.referenceNormalMinutes)} no total de referência)
+          {formatHours(b.referenceNormalMinutes)} × {formatEarningsBRL(REAIS_POR_HORA_NORMAL)}/h ={" "}
+          {formatEarningsBRL(b.referenceNormalValue)}
         </Text>
       </View>
 
@@ -425,68 +453,38 @@ function FortnightPdfCard({
         <View style={styles.fortnightDiscountBlock}>
           <Text style={styles.fortnightDiscountLabel}>Desconto — abaixo da jornada prevista</Text>
           <Text style={styles.fortnightDiscountText}>
-            Falta integral (sem registro) ou parcial (5h seg–sex, 9h sábado; domingo sem
-            jornada prevista): faltaram {formatHours(b.missingMinutes)} para completar a
-            referência.
+            Faltaram {formatHours(b.missingMinutes)} para completar a referência.
           </Text>
           <Text style={[styles.fortnightDiscountText, { marginTop: 4 }]}>
             − ({b.missingMinutes} min ÷ 60) × {formatEarningsBRL(REAIS_POR_HORA_NORMAL)}
             /h = −{formatEarningsBRL(b.discountValue)}
           </Text>
+          <Text style={[styles.fortnightDiscountText, { marginTop: 4, fontSize: 8 }]}>
+            Após desconto (taxa normal): {formatHours(b.clockNormalMinutes)} ×{" "}
+            {formatEarningsBRL(REAIS_POR_HORA_NORMAL)}/h = {formatEarningsBRL(b.clockNormalValue)}
+          </Text>
         </View>
       ) : (
         <View style={styles.dashedNote}>
           <Text style={styles.dashedNoteText}>
-            Sem desconto: em todos os dias úteis considerados o tempo atingiu ou passou da
-            jornada prevista ({JORNADA_REFERENCIA_RESUMO}).
+            Sem desconto ({JORNADA_REFERENCIA_RESUMO}).
           </Text>
         </View>
       )}
 
-      <View style={styles.fortnightBlock}>
-        <Text style={styles.fortnightBlockLabel}>
-          Horas extras (acima de 5h, de 9h no sábado, ou qualquer hora no domingo)
+      {hasExtra ? (
+        <Text style={[styles.fortnightBody, { marginBottom: 6, fontSize: 8 }]}>
+          + trechos na alíquota extra: {formatEarningsBRL(b.extraValue)} (
+          {formatHours(b.extraMinutes)} × {formatEarningsBRL(REAIS_POR_HORA_EXTRA)}/h)
         </Text>
-        {hasExtra ? (
-          <>
-            <Text style={[styles.fortnightBody, { fontSize: 8, marginBottom: 4 }]}>
-              Não são horas além do tempo total batido: já entram em{" "}
-              {formatHours(b.totalMinutes)}; só mudam a alíquota (acima da jornada do dia).
-            </Text>
-            <Text style={styles.fortnightBody}>
-              {formatHours(b.extraMinutes)} × {formatEarningsBRL(REAIS_POR_HORA_EXTRA)}/h
-            </Text>
-            <Text style={styles.fortnightEmphasis}>= +{formatEarningsBRL(b.extraValue)}</Text>
-          </>
-        ) : (
-          <Text style={[styles.fortnightBody, { fontSize: 8, color: colors.textMuted }]}>
-            Nenhuma hora extra neste período.
-          </Text>
-        )}
-      </View>
+      ) : null}
 
-      <View style={styles.fortnightTotalBlock}>
-        <Text style={styles.fortnightTotalLabel}>Total da quinzena</Text>
-        <Text style={styles.fortnightTotalFormula}>
-          {formatEarningsBRL(b.referenceNormalValue)}
-          {hasDiscount ? ` − ${formatEarningsBRL(b.discountValue)}` : ""}
-          {hasExtra ? ` + ${formatEarningsBRL(b.extraValue)}` : ""} =
-        </Text>
-        <Text style={styles.fortnightTotalValue}>{formatEarningsBRL(b.totalValue)}</Text>
-        <Text style={[styles.fortnightCheckLine, { marginTop: 6 }]}>
-          Uma soma só de tempo: {formatHours(b.totalMinutes - b.extraMinutes)} +{" "}
-          {formatHours(b.extraMinutes)} = {formatHours(b.totalMinutes)} (não é “total + extra”
-          como horas a mais).
-        </Text>
-        <Text style={styles.fortnightCheckLine}>
-          Valores: {formatHours(b.totalMinutes - b.extraMinutes)} ×{" "}
-          {formatEarningsBRL(REAIS_POR_HORA_NORMAL)}/h
-          {hasExtra
-            ? ` + ${formatHours(b.extraMinutes)} × ${formatEarningsBRL(REAIS_POR_HORA_EXTRA)}/h`
-            : ""}
-          .
-        </Text>
-      </View>
+      <Text style={[styles.fortnightBody, { fontSize: 8, color: colors.textMuted }]}>
+        Conferência: {formatEarningsBRL(b.referenceNormalValue)}
+        {hasDiscount ? ` − ${formatEarningsBRL(b.discountValue)}` : ""}
+        {hasExtra ? ` + ${formatEarningsBRL(b.extraValue)}` : ""} ={" "}
+        {formatEarningsBRL(b.totalValue)}
+      </Text>
     </View>
   );
 }
