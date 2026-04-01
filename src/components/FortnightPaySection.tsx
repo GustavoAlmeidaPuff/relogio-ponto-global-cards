@@ -36,11 +36,12 @@ function FortnightCard({ b, title }: { b: FortnightPayBreakdown; title: string }
               1. Ganhos — horas normais
             </p>
             <p className="text-slate-600 text-xs leading-relaxed">
-              {JORNADA_REFERENCIA_RESUMO} Referência de calendário na quinzena (seg–sáb).
+              {JORNADA_REFERENCIA_RESUMO} Tempo total registrado na quinzena menos as horas
+              classificadas como extras: {formatHours(b.totalMinutes)} − {formatHours(b.extraMinutes)}.
             </p>
             <p className="text-slate-800 tabular-nums">
-              {formatHours(b.referenceNormalMinutes)} × {formatEarningsBRL(REAIS_POR_HORA_NORMAL)}/h
-              = <span className="font-semibold">{formatEarningsBRL(b.referenceNormalValue)}</span>
+              {formatHours(b.clockNormalMinutes)} × {formatEarningsBRL(REAIS_POR_HORA_NORMAL)}/h
+              = <span className="font-semibold">{formatEarningsBRL(b.clockNormalValue)}</span>
             </p>
           </div>
 
@@ -79,16 +80,23 @@ function FortnightCard({ b, title }: { b: FortnightPayBreakdown; title: string }
             {hasDiscount ? (
               <>
                 <p className="text-amber-950/90 text-xs leading-relaxed">
-                  Faltaram {formatHours(b.missingMinutes)} em relação à referência (dia sem ponto ou
-                  abaixo de 5h / 9h sáb.).
+                  Referência de calendário na quinzena: {formatHours(b.referenceNormalMinutes)}. Em
+                  relação a ela, faltaram {formatHours(b.missingMinutes)} (dia sem ponto ou abaixo de
+                  5h / 9h sáb.) — equivalente a{" "}
+                  <span className="font-medium tabular-nums">
+                    −{formatEarningsBRL(b.discountValue)}
+                  </span>{" "}
+                  na taxa normal. Isso <strong>não é descontado de novo</strong> no total: a linha 1
+                  já usa só o tempo efetivo (total − extras).
                 </p>
-                <p className="text-amber-950 tabular-nums">
-                  − ({b.missingMinutes} min ÷ 60) × {formatEarningsBRL(REAIS_POR_HORA_NORMAL)}/h ={" "}
-                  <span className="font-semibold">−{formatEarningsBRL(b.discountValue)}</span>
+                <p className="text-amber-950 tabular-nums text-xs">
+                  Conferência: {formatHours(b.referenceNormalMinutes)} ×{" "}
+                  {formatEarningsBRL(REAIS_POR_HORA_NORMAL)}/h − {formatHours(b.missingMinutes)} na
+                  mesma taxa ≈ linha 1.
                 </p>
               </>
             ) : (
-              <p className="text-slate-500 text-xs">Sem desconto neste período.</p>
+              <p className="text-slate-500 text-xs">Sem falta em relação à referência de calendário.</p>
             )}
           </div>
 
@@ -97,9 +105,8 @@ function FortnightCard({ b, title }: { b: FortnightPayBreakdown; title: string }
               4. Total da quinzena
             </p>
             <p className="text-xs text-emerald-900/90 tabular-nums leading-relaxed break-words">
-              {formatEarningsBRL(b.referenceNormalValue)}
-              {hasExtra ? ` + ${formatEarningsBRL(b.extraValue)}` : ""}
-              {hasDiscount ? ` − ${formatEarningsBRL(b.discountValue)}` : ""} ={" "}
+              {formatEarningsBRL(b.clockNormalValue)}
+              {hasExtra ? ` + ${formatEarningsBRL(b.extraValue)}` : ""} ={" "}
             </p>
             <p className="text-xl sm:text-2xl font-bold text-emerald-950 tabular-nums mt-1">
               {formatEarningsBRL(b.totalValue)}
@@ -138,8 +145,8 @@ export function FortnightPaySection({
           Quanto receber — por quinzena
         </h2>
         <p className="text-slate-600 text-sm mt-1 max-w-3xl">
-          {JORNADA_REFERENCIA_RESUMO} Em cada quinzena: ganhos na taxa normal (referência de
-          calendário), ganhos em horas extra, desconto por falta à jornada e total.
+          {JORNADA_REFERENCIA_RESUMO} Horas normais = tempo total registrado − horas extras; total =
+          linha 1 + linha 2. O bloco de falta compara com a referência de calendário.
         </p>
       </div>
 

@@ -406,11 +406,12 @@ function FortnightPdfCard({
       <View style={styles.fortnightBlock}>
         <Text style={styles.fortnightBlockLabel}>1. Ganhos — horas normais</Text>
         <Text style={[styles.fortnightBody, { fontSize: 8, color: colors.textMuted }]}>
-          {JORNADA_REFERENCIA_RESUMO} Referência de calendário (seg–sáb).
+          {JORNADA_REFERENCIA_RESUMO} Total registrado − extras: {formatHours(b.totalMinutes)} −{" "}
+          {formatHours(b.extraMinutes)}.
         </Text>
         <Text style={[styles.fortnightBody, { marginTop: 4 }]}>
-          {formatHours(b.referenceNormalMinutes)} × {formatEarningsBRL(REAIS_POR_HORA_NORMAL)}/h ={" "}
-          {formatEarningsBRL(b.referenceNormalValue)}
+          {formatHours(b.clockNormalMinutes)} × {formatEarningsBRL(REAIS_POR_HORA_NORMAL)}/h ={" "}
+          {formatEarningsBRL(b.clockNormalValue)}
         </Text>
       </View>
 
@@ -434,27 +435,24 @@ function FortnightPdfCard({
 
       {hasDiscount ? (
         <View style={styles.fortnightDiscountBlock}>
-          <Text style={styles.fortnightDiscountLabel}>3. Desconto — horas faltantes</Text>
+          <Text style={styles.fortnightDiscountLabel}>3. Falta à referência (calendário)</Text>
           <Text style={styles.fortnightDiscountText}>
-            Faltaram {formatHours(b.missingMinutes)} em relação à referência.
-          </Text>
-          <Text style={[styles.fortnightDiscountText, { marginTop: 4 }]}>
-            − ({b.missingMinutes} min ÷ 60) × {formatEarningsBRL(REAIS_POR_HORA_NORMAL)}
-            /h = −{formatEarningsBRL(b.discountValue)}
+            Referência {formatHours(b.referenceNormalMinutes)}; faltaram{" "}
+            {formatHours(b.missingMinutes)} (−{formatEarningsBRL(b.discountValue)} na taxa normal).
+            Não desconta de novo no total; linha 1 já usa total − extras.
           </Text>
         </View>
       ) : (
         <View style={styles.dashedNote}>
-          <Text style={styles.dashedNoteText}>3. Desconto: sem desconto neste período.</Text>
+          <Text style={styles.dashedNoteText}>3. Sem falta em relação à referência.</Text>
         </View>
       )}
 
       <View style={[styles.fortnightTotalBlock, { marginTop: 8 }]}>
         <Text style={styles.fortnightTotalLabel}>4. Total da quinzena</Text>
         <Text style={styles.fortnightTotalFormula}>
-          {formatEarningsBRL(b.referenceNormalValue)}
-          {hasExtra ? ` + ${formatEarningsBRL(b.extraValue)}` : ""}
-          {hasDiscount ? ` − ${formatEarningsBRL(b.discountValue)}` : ""} =
+          {formatEarningsBRL(b.clockNormalValue)}
+          {hasExtra ? ` + ${formatEarningsBRL(b.extraValue)}` : ""} =
         </Text>
         <Text style={styles.fortnightTotalValue}>{formatEarningsBRL(b.totalValue)}</Text>
         <Text style={styles.fortnightCheckLine}>
@@ -540,8 +538,8 @@ export function MonthReportPdf({
         <View style={styles.fortnightPageBody}>
           <Text style={styles.fortnightMainTitle}>Quanto receber — por quinzena</Text>
           <Text style={styles.fortnightIntro}>
-            {JORNADA_REFERENCIA_RESUMO} Em cada quinzena: ganhos na taxa normal (referência de
-            calendário), ganhos em horas extra, desconto por falta e total.
+            {JORNADA_REFERENCIA_RESUMO} Horas normais = tempo registrado − extras; total = linha 1 +
+            linha 2. Bloco 3: conferência com referência de calendário.
           </Text>
           <FortnightPdfCard b={fortnightFirst} title="Primeira quinzena" />
           <FortnightPdfCard b={fortnightSecond} title="Segunda quinzena" />

@@ -32,7 +32,11 @@ export interface FortnightPayBreakdown {
   /** Igual a earningsFromMinutes(totalMin, extraMin) na quinzena. */
   totalValue: number;
   totalMinutes: number;
-  /** referenceNormalValue + extraValue (antes do desconto por falta). */
+  /** Minutos na faixa normal: total registrado − classificados como extra (por dia). */
+  clockNormalMinutes: number;
+  /** (clockNormalMinutes / 60) × taxa normal. */
+  clockNormalValue: number;
+  /** clockNormalValue + extraValue (= totalValue). */
   subtotalGross: number;
 }
 
@@ -145,11 +149,11 @@ export function buildFortnightBreakdown(
     (referenceNormalMinutes / 60) * REAIS_POR_HORA_NORMAL;
   const discountValue = (missingMinutes / 60) * REAIS_POR_HORA_NORMAL;
   const extraValue = (extraMinutes / 60) * REAIS_POR_HORA_EXTRA;
-  const subtotalGross = referenceNormalValue + extraValue;
-  const fromWorked = earningsFromMinutes(totalMinutes, extraMinutes);
-  const fromLedger = subtotalGross - discountValue;
-  const totalValue =
-    Math.abs(fromWorked - fromLedger) < 0.02 ? fromLedger : fromWorked;
+  const clockNormalMinutes = totalMinutes - extraMinutes;
+  const clockNormalValue =
+    (clockNormalMinutes / 60) * REAIS_POR_HORA_NORMAL;
+  const totalValue = earningsFromMinutes(totalMinutes, extraMinutes);
+  const subtotalGross = clockNormalValue + extraValue;
 
   return {
     fortnight,
@@ -163,6 +167,8 @@ export function buildFortnightBreakdown(
     extraValue,
     totalValue,
     totalMinutes,
+    clockNormalMinutes,
+    clockNormalValue,
     subtotalGross,
   };
 }
