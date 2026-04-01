@@ -10,13 +10,14 @@ import {
 import type { WorkDay } from "@/types";
 import type { WeekSummary } from "@/hooks/useMonthReport";
 import {
-  totalMinutesForDay,
+  effectiveWorkedMinutes,
   formatHours,
   extraMinutesForDay,
   totalExtraMinutes,
   formatEarningsBRL,
   REAIS_POR_HORA_NORMAL,
   REAIS_POR_HORA_EXTRA,
+  JORNADA_REFERENCIA_RESUMO,
 } from "@/hooks/useMonthReport";
 import type { FortnightPayBreakdown } from "@/lib/fortnightEarnings";
 import { buildMonthFortnightBreakdowns } from "@/lib/fortnightEarnings";
@@ -404,9 +405,13 @@ function FortnightPdfCard({
 
       <View style={styles.fortnightBlock}>
         <Text style={styles.fortnightBlockLabel}>Referência de jornada normal</Text>
-        <Text style={styles.fortnightBody}>
-          {b.daysWithRecords} dia{b.daysWithRecords !== 1 ? "s" : ""} × 8h ×{" "}
-          {formatEarningsBRL(REAIS_POR_HORA_NORMAL)}/h
+        <Text style={[styles.fortnightBody, { fontSize: 8, color: colors.textMuted }]}>
+          {JORNADA_REFERENCIA_RESUMO} Soma da jornada prevista nos dias com tempo
+          registrado.
+        </Text>
+        <Text style={[styles.fortnightBody, { marginTop: 4 }]}>
+          {formatHours(b.referenceNormalMinutes)} × {formatEarningsBRL(REAIS_POR_HORA_NORMAL)}
+          /h
         </Text>
         <Text style={styles.fortnightEmphasis}>
           = {formatEarningsBRL(b.referenceNormalValue)}
@@ -418,10 +423,11 @@ function FortnightPdfCard({
 
       {hasDiscount ? (
         <View style={styles.fortnightDiscountBlock}>
-          <Text style={styles.fortnightDiscountLabel}>Desconto — horas abaixo de 8h</Text>
+          <Text style={styles.fortnightDiscountLabel}>Desconto — abaixo da jornada prevista</Text>
           <Text style={styles.fortnightDiscountText}>
-            Nos dias em que trabalhou menos de 8h, faltaram{" "}
-            {formatHours(b.missingMinutes)} para completar a jornada de referência.
+            Nos dias em que trabalhou menos que a jornada daquele dia (5h ou 9h no
+            sábado), faltaram{" "}
+            {formatHours(b.missingMinutes)} para completar a referência.
           </Text>
           <Text style={[styles.fortnightDiscountText, { marginTop: 4 }]}>
             − ({b.missingMinutes} min ÷ 60) × {formatEarningsBRL(REAIS_POR_HORA_NORMAL)}
@@ -431,14 +437,14 @@ function FortnightPdfCard({
       ) : (
         <View style={styles.dashedNote}>
           <Text style={styles.dashedNoteText}>
-            Sem desconto por falta à jornada de 8h (todos os dias com registro têm 8h ou
-            mais trabalhadas).
+            Sem desconto: em todos os dias com ponto o tempo atingiu ou passou da jornada
+            prevista ({JORNADA_REFERENCIA_RESUMO}).
           </Text>
         </View>
       )}
 
       <View style={styles.fortnightBlock}>
-        <Text style={styles.fortnightBlockLabel}>Horas extras (acima de 8h no mesmo dia)</Text>
+        <Text style={styles.fortnightBlockLabel}>Horas extras (acima de 5h ou 9h no sábado)</Text>
         {hasExtra ? (
           <>
             <Text style={styles.fortnightBody}>
@@ -497,6 +503,9 @@ export function MonthReportPdf({
     monthKey
   );
   const monthTotalFortnight = fortnightFirst.totalValue + fortnightSecond.totalValue;
+  const daysWithWorkedTime = workDays.filter(
+    (wd) => effectiveWorkedMinutes(wd) > 0
+  ).length;
 
   return (
     <Document>
@@ -516,10 +525,10 @@ export function MonthReportPdf({
             <View style={styles.summaryCard}>
               <Text style={styles.summaryText}>
                 Total trabalhado: {formatHours(totalMinutes)} —{" "}
-                {workDays.length} dia(s) com registro
+                {daysWithWorkedTime} dia(s) com tempo registrado
               </Text>
               <Text style={[styles.summaryText, { marginTop: 8 }]}>
-                Horas extras (acima de 8h/dia):{" "}
+                Horas extras (acima da jornada prevista):{" "}
                 {formatHours(totalExtraMinutes(workDays))}
               </Text>
             </View>
@@ -546,12 +555,11 @@ export function MonthReportPdf({
         <View style={styles.fortnightPageBody}>
           <Text style={styles.fortnightMainTitle}>Quanto receber — por quinzena</Text>
           <Text style={styles.fortnightIntro}>
-            Por que esse valor: em cada quinzena usamos referência de 8h por dia apenas nos dias
-            com registro de ponto; quando a jornada fica abaixo de 8h, mostramos o desconto (valor
-            não pago em relação a completar 8h nesses dias); as horas acima de 8h no mesmo dia
+            {JORNADA_REFERENCIA_RESUMO} Em cada quinzena somamos só a jornada prevista dos dias em
+            que há tempo registrado; abaixo disso há desconto proporcional; acima da jornada do dia
             entram como extras a {formatEarningsBRL(REAIS_POR_HORA_EXTRA)}/h. Total da quinzena =
-            referência normal − desconto + extras — confira na linha “Conferência” abaixo (equivale
-            a horas normais efetivas × {formatEarningsBRL(REAIS_POR_HORA_NORMAL)}/h + extras ×{" "}
+            referência normal − desconto + extras — confira na linha “Conferência” (horas normais
+            efetivas × {formatEarningsBRL(REAIS_POR_HORA_NORMAL)}/h + extras ×{" "}
             {formatEarningsBRL(REAIS_POR_HORA_EXTRA)}/h).
           </Text>
           <FortnightPdfCard b={fortnightFirst} title="Primeira quinzena" />
@@ -576,7 +584,7 @@ export function MonthReportPdf({
                 <View key={wd.id} style={styles.dayBlock}>
                   <View style={styles.dayHeader}>
                     <Text style={styles.dayTitleLine}>
-                      {formatDate(wd.date)} — {formatHours(totalMinutesForDay(wd))}
+                      {formatDate(wd.date)} — {formatHours(effectiveWorkedMinutes(wd))}
                     </Text>
                     {extraMin > 0 ? (
                       <Text style={styles.dayExtra}>

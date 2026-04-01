@@ -16,17 +16,43 @@ export function totalMinutesForDay(workDay: WorkDay): number {
   return workDay.punches.reduce((acc, p) => acc + minutesBetween(p.entry, p.exit), 0);
 }
 
-/** Jornada diária de referência para cálculo de horas extras (8h). */
+/**
+ * Minutos trabalhados no dia: maior valor entre soma das batidas fechadas e `totalWorkedMs`
+ * (relógio ao vivo / fechamento), para não perder dias só com tempo sincronizado.
+ */
+export function effectiveWorkedMinutes(workDay: WorkDay): number {
+  const fromPunches = totalMinutesForDay(workDay);
+  const ms = workDay.totalWorkedMs;
+  const fromMs =
+    typeof ms === "number" && ms > 0 ? Math.round(ms / 60000) : 0;
+  return Math.max(fromPunches, fromMs);
+}
+
+/**
+ * Jornada prevista por dia (para extras e faltas): seg–sex e domingo 5h; sábado 9h.
+ */
+export function expectedMinutesForDate(dateStr: string): number {
+  const d = new Date(dateStr + "T12:00:00");
+  const dow = d.getDay();
+  if (dow === 6) return 9 * 60;
+  return 5 * 60;
+}
+
+/** Texto curto para UI (demonstrativos). */
+export const JORNADA_REFERENCIA_RESUMO =
+  "Seg–sex e domingo: 5h. Sábado: 9h.";
+
+/** @deprecated use expectedMinutesForDate — mantido para migração de imports. */
 export const JORNADA_PADRAO_MINUTOS_DIA = 8 * 60;
 
-/** Valor por hora na jornada (até 8h por dia). */
+/** Valor por hora na jornada normal. */
 export const REAIS_POR_HORA_NORMAL = 23.08;
-/** Valor por hora extra (acima de 8h no mesmo dia). */
+/** Valor por hora extra (acima da jornada prevista no mesmo dia). */
 export const REAIS_POR_HORA_EXTRA = 25;
 
 /**
  * Valor estimado: minutos normais a REAIS_POR_HORA_NORMAL e extras a REAIS_POR_HORA_EXTRA.
- * `extraMinutes` deve ser a soma dos minutos acima de 8h por dia (ou o extra do próprio dia).
+ * `extraMinutes` deve ser a soma dos minutos acima da jornada prevista por dia.
  */
 export function earningsFromMinutes(
   totalMinutes: number,
@@ -48,17 +74,19 @@ export function formatEarningsBRL(value: number): string {
   });
 }
 
-/** Minutos acima da jornada diária de referência (8h), por dia. */
+/** Minutos acima da jornada prevista para aquele dia da semana. */
 export function extraMinutesForDay(workDay: WorkDay): number {
-  const worked = totalMinutesForDay(workDay);
-  return Math.max(0, worked - JORNADA_PADRAO_MINUTOS_DIA);
+  const worked = effectiveWorkedMinutes(workDay);
+  const expected = expectedMinutesForDate(workDay.date);
+  return Math.max(0, worked - expected);
 }
 
-/** Minutos abaixo de 8h quando houve jornada registrada (para demonstrativo de “falta”). */
+/** Minutos abaixo da jornada prevista quando houve trabalho registrado (“falta”). */
 export function missingMinutesForDay(workDay: WorkDay): number {
-  const worked = totalMinutesForDay(workDay);
+  const worked = effectiveWorkedMinutes(workDay);
   if (worked <= 0) return 0;
-  return Math.max(0, JORNADA_PADRAO_MINUTOS_DIA - worked);
+  const expected = expectedMinutesForDate(workDay.date);
+  return Math.max(0, expected - worked);
 }
 
 export function totalExtraMinutes(workDays: WorkDay[]): number {
@@ -90,7 +118,10 @@ export function groupByWeek(workDays: WorkDay[]): WeekSummary[] {
   }
   const entries = Array.from(byWeek.entries()).sort((a, b) => a[0].localeCompare(b[0]));
   return entries.map(([key, days]) => {
-    const totalMinutes = days.reduce((acc, wd) => acc + totalMinutesForDay(wd), 0);
+    const totalMinutes = days.reduce(
+      (acc, wd) => acc + effectiveWorkedMinutes(wd),
+      0
+    );
     const extraMinutes = days.reduce((acc, wd) => acc + extraMinutesForDay(wd), 0);
     const start = new Date(key);
     const end = new Date(start);
@@ -132,7 +163,10 @@ export function useMonthReport(userId: string | undefined, month: string) {
     refresh();
   }, [refresh]);
 
-  const totalMinutes = workDays.reduce((acc, wd) => acc + totalMinutesForDay(wd), 0);
+  const totalMinutes = workDays.reduce(
+    (acc, wd) => acc + effectiveWorkedMinutes(wd),
+    0
+  );
   const weekSummaries = groupByWeek(workDays);
 
   return {

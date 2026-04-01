@@ -7,7 +7,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useWorkDay } from "@/hooks/useWorkDay";
 import {
   useMonthReport,
-  totalMinutesForDay,
+  effectiveWorkedMinutes,
   formatHours,
   groupByWeek,
   extraMinutesForDay,
@@ -82,6 +82,10 @@ export default function MesPage() {
       fortnightBreakdowns[0].totalValue + fortnightBreakdowns[1].totalValue,
     [fortnightBreakdowns]
   );
+  const daysWithWorkedTime = useMemo(
+    () => workDays.filter((wd) => effectiveWorkedMinutes(wd) > 0).length,
+    [workDays]
+  );
 
   const prepareExport = useCallback(async () => {
     if (!user?.uid || !validMes) {
@@ -92,7 +96,7 @@ export default function MesPage() {
       getMonthClosure(user.uid, validMes),
     ]);
     const closedAtStamp = closure?.closedAt ?? null;
-    const total = days.reduce((acc, wd) => acc + totalMinutesForDay(wd), 0);
+    const total = days.reduce((acc, wd) => acc + effectiveWorkedMinutes(wd), 0);
     const weeks = groupByWeek(days);
     return {
       workDays: days,
@@ -257,8 +261,8 @@ export default function MesPage() {
                   Por dia
                 </span>
                 <span className="text-slate-600 text-sm mt-2">
-                  {workDays.length} dia{workDays.length !== 1 ? "s" : ""} ·
-                  horas e valores
+                  {daysWithWorkedTime} dia
+                  {daysWithWorkedTime !== 1 ? "s" : ""} · horas e valores
                 </span>
               </button>
             </div>
@@ -315,16 +319,16 @@ export default function MesPage() {
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
                       <div className="rounded-lg bg-emerald-50/90 border border-emerald-100 px-3 py-2.5">
                         <p className="text-emerald-800/80 text-xs leading-snug">
-                          Valor (23,08/h · 25/h extra)
+                          Valor (23,08/h · 25/h extra; jornada 5h / sáb. 9h)
                         </p>
                         <p className="font-semibold text-emerald-900 tabular-nums">
                           {minutesToReais(totalMinutes, totalExtraMin)}
                         </p>
                       </div>
                       <div className="rounded-lg bg-slate-50 border border-slate-100 px-3 py-2.5">
-                        <p className="text-slate-600 text-xs">Dias com registro</p>
+                        <p className="text-slate-600 text-xs">Dias com tempo registrado</p>
                         <p className="font-semibold text-slate-900 tabular-nums">
-                          {workDays.length}
+                          {daysWithWorkedTime}
                         </p>
                       </div>
                     </div>
@@ -415,7 +419,8 @@ export default function MesPage() {
                     Todos os dias
                   </h2>
                   <p className="text-slate-600 text-sm mt-2">
-                    Horas trabalhadas e valor por dia (23,08/h · 25/h extra).
+                    Horas trabalhadas e valor por dia (23,08/h · 25/h extra; extras acima
+                    de 5h ou 9h no sábado).
                     Toque em um dia para ver entradas, saídas e anotações.
                   </p>
                 </div>
@@ -426,7 +431,7 @@ export default function MesPage() {
                 ) : (
                   <ul className="space-y-2">
                     {workDays.map((wd) => {
-                      const dayMin = totalMinutesForDay(wd);
+                      const dayMin = effectiveWorkedMinutes(wd);
                       const dayExtra = extraMinutesForDay(wd);
                       return (
                         <li key={wd.id}>

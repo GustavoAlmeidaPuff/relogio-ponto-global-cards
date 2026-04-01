@@ -2,7 +2,7 @@
 
 import type { WorkDay } from "@/types";
 import {
-  totalMinutesForDay,
+  effectiveWorkedMinutes,
   formatHours,
   type WeekSummary,
 } from "@/hooks/useMonthReport";
@@ -36,6 +36,9 @@ export function ReportMonth({
     month: "long",
     year: "numeric",
   });
+  const daysWithWorkedTime = workDays.filter(
+    (wd) => effectiveWorkedMinutes(wd) > 0
+  ).length;
 
   return (
     <div className="space-y-8">
@@ -57,7 +60,8 @@ export function ReportMonth({
         </h3>
         <p className="text-slate-700">
           Total: <strong>{formatHours(totalMinutes)}</strong> (
-          {workDays.length} dia{workDays.length !== 1 ? "s" : ""} com registro)
+          {daysWithWorkedTime} dia{daysWithWorkedTime !== 1 ? "s" : ""} com tempo
+          registrado)
         </p>
       </section>
 
@@ -95,7 +99,7 @@ export function ReportMonth({
                   {formatDate(wd.date)}
                 </span>
                 <span className="text-slate-600">
-                  {formatHours(totalMinutesForDay(wd))}
+                  {formatHours(effectiveWorkedMinutes(wd))}
                 </span>
               </div>
               <PunchList punches={wd.punches} />

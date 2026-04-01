@@ -316,6 +316,33 @@ export async function getWorkDaysInMonth(
   return inRange;
 }
 
+/** Dia conta como “com registro” se há batida completa ou tempo trabalhado salvo. */
+export function workDayHasTimeRegistration(w: WorkDay): boolean {
+  if (typeof w.totalWorkedMs === "number" && w.totalWorkedMs > 0) return true;
+  const punches = w.punches || [];
+  return punches.some((p) => p.entry != null && p.exit != null);
+}
+
+/**
+ * Lista todos os meses (YYYY-MM) em que o usuário tem pelo menos um dia com registro de ponto,
+ * do mais recente ao mais antigo.
+ */
+export async function getMonthsWithWorkRecords(
+  userId: string
+): Promise<string[]> {
+  const col = collection(getDb(), WORK_DAYS);
+  const q = query(col, where("userId", "==", userId));
+  const snapshot = await withRetry(() => getDocs(q));
+  const months = new Set<string>();
+  for (const d of snapshot.docs) {
+    const w = { id: d.id, ...d.data() } as WorkDay;
+    if (!w.date || w.date.length < 7) continue;
+    if (!workDayHasTimeRegistration(w)) continue;
+    months.add(w.date.slice(0, 7));
+  }
+  return Array.from(months).sort((a, b) => b.localeCompare(a));
+}
+
 export async function closeMonth(
   userId: string,
   month: string

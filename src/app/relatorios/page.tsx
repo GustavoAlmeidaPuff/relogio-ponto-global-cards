@@ -10,7 +10,7 @@ import {
   earningsFromMinutes,
   formatEarningsBRL,
 } from "@/hooks/useMonthReport";
-import { getMonthClosure } from "@/lib/firestore";
+import { getMonthsWithWorkRecords } from "@/lib/firestore";
 
 function formatMonthLabel(mes: string): string {
   return new Date(mes + "-01T12:00:00").toLocaleDateString("pt-BR", {
@@ -22,7 +22,8 @@ function formatMonthLabel(mes: string): string {
 export default function RelatoriosPage() {
   const { user, loading, signOut } = useAuth();
   const router = useRouter();
-  const [currentMonthClosed, setCurrentMonthClosed] = useState(false);
+  const [monthsWithRecords, setMonthsWithRecords] = useState<string[]>([]);
+  const [monthsListLoading, setMonthsListLoading] = useState(true);
 
   const now = new Date();
   const currentMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
@@ -45,11 +46,17 @@ export default function RelatoriosPage() {
   }, [user, loading, router]);
 
   useEffect(() => {
-    if (!user?.uid) return;
-    getMonthClosure(user.uid, currentMonth).then((closure) => {
-      setCurrentMonthClosed(!!closure?.closedAt);
-    });
-  }, [user?.uid, currentMonth]);
+    if (!user?.uid) {
+      setMonthsWithRecords([]);
+      setMonthsListLoading(false);
+      return;
+    }
+    setMonthsListLoading(true);
+    getMonthsWithWorkRecords(user.uid)
+      .then(setMonthsWithRecords)
+      .catch(() => setMonthsWithRecords([]))
+      .finally(() => setMonthsListLoading(false));
+  }, [user?.uid]);
 
   if (loading || !user) {
     return (
@@ -58,19 +65,6 @@ export default function RelatoriosPage() {
       </div>
     );
   }
-
-  const otherMonths: string[] = currentMonthClosed
-    ? (() => {
-        const list: string[] = [];
-        for (let i = 1; i <= 5; i++) {
-          const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
-          list.push(
-            `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`
-          );
-        }
-        return list;
-      })()
-    : [];
 
   return (
     <div className="min-h-screen bg-slate-50">
@@ -102,55 +96,56 @@ export default function RelatoriosPage() {
           Histórico do mês
         </h2>
         <p className="text-slate-600 text-sm mb-4">
-          Clique no mês para ver os dias registrados e as horas trabalhadas.
+          Só aparecem meses em que há registro de ponto. Clique para ver os dias
+          e as horas trabalhadas.
         </p>
 
-        <section className="mb-6">
-          <Link
-            href={`/relatorios/mes/${currentMonth}`}
-            className="block p-5 bg-white rounded-xl border-2 border-blue-200 hover:border-blue-400 hover:bg-blue-50/50 transition shadow-sm"
-          >
-            <span className="text-lg font-semibold text-slate-800 capitalize">
-              {formatMonthLabel(currentMonth)}
-            </span>
-            <p className="text-slate-500 text-sm mt-1">
-              Ver dias registrados e horas trabalhadas →
-            </p>
-            {!monthLoading && (
-              <p className="text-emerald-700 font-medium text-sm mt-2">
-                Total do mês: {valorMesReais}
-                <span className="text-slate-500 font-normal">
-                  {" "}
-                  (23,08/h · 25/h extra)
-                </span>
-              </p>
-            )}
-          </Link>
-        </section>
-
-        {otherMonths.length > 0 && (
-          <section>
-            <h3 className="text-sm font-medium text-slate-600 mb-2">
-              Outros meses
-            </h3>
-            <ul className="space-y-2">
-              {otherMonths.map((mes) => (
+        {monthsListLoading ? (
+          <div className="animate-pulse rounded-xl bg-slate-200/80 h-24" aria-hidden />
+        ) : monthsWithRecords.length === 0 ? (
+          <p className="text-slate-600 text-sm py-6 text-center border border-dashed border-slate-200 rounded-xl bg-white">
+            Nenhum mês com registro de ponto ainda.
+          </p>
+        ) : (
+          <ul className="space-y-3">
+            {monthsWithRecords.map((mes) => {
+              const isCurrent = mes === currentMonth;
+              return (
                 <li key={mes}>
                   <Link
                     href={`/relatorios/mes/${mes}`}
-                    className="block p-4 bg-white rounded-lg border border-slate-200 hover:border-slate-300 hover:bg-slate-50 transition"
+                    className={`block p-4 sm:p-5 rounded-xl border transition shadow-sm ${
+                      isCurrent
+                        ? "bg-white border-2 border-blue-200 hover:border-blue-400 hover:bg-blue-50/50"
+                        : "bg-white border border-slate-200 hover:border-slate-300 hover:bg-slate-50"
+                    }`}
                   >
-                    <span className="font-medium text-slate-800 capitalize">
+                    <span
+                      className={`block capitalize ${
+                        isCurrent
+                          ? "text-lg font-semibold text-slate-800"
+                          : "font-medium text-slate-800"
+                      }`}
+                    >
                       {formatMonthLabel(mes)}
                     </span>
-                    <span className="text-slate-500 text-sm ml-2">
-                      → Ver dias e relatório
-                    </span>
+                    <p className="text-slate-500 text-sm mt-1">
+                      Ver dias registrados e horas trabalhadas →
+                    </p>
+                    {isCurrent && !monthLoading && (
+                      <p className="text-emerald-700 font-medium text-sm mt-2">
+                        Total do mês: {valorMesReais}
+                        <span className="text-slate-500 font-normal">
+                          {" "}
+                          (23,08/h · 25/h extra)
+                        </span>
+                      </p>
+                    )}
                   </Link>
                 </li>
-              ))}
-            </ul>
-          </section>
+              );
+            })}
+          </ul>
         )}
       </main>
     </div>

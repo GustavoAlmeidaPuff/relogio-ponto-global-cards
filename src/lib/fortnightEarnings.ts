@@ -1,12 +1,12 @@
 import type { WorkDay } from "@/types";
 import {
+  earningsFromMinutes,
+  effectiveWorkedMinutes,
+  expectedMinutesForDate,
   extraMinutesForDay,
-  JORNADA_PADRAO_MINUTOS_DIA,
   missingMinutesForDay,
   REAIS_POR_HORA_EXTRA,
   REAIS_POR_HORA_NORMAL,
-  totalMinutesForDay,
-  earningsFromMinutes,
 } from "@/hooks/useMonthReport";
 
 /** 1 = dias 1–15; 2 = dias 16 em diante. */
@@ -23,7 +23,7 @@ export interface FortnightPayBreakdown {
   /** Ex.: "1–15 abr." */
   labelRange: string;
   daysWithRecords: number;
-  /** Dias com registro × 8h — base da “jornada cheia” para o demonstrativo. */
+  /** Soma das jornadas previstas (5h/9h) só nos dias com tempo trabalhado efetivo. */
   referenceNormalMinutes: number;
   referenceNormalValue: number;
   missingMinutes: number;
@@ -59,16 +59,30 @@ export function buildFortnightBreakdown(
   validMes: string,
   fortnight: FortnightIndex
 ): FortnightPayBreakdown {
-  const days = workDays.filter((wd) => fortnightFromDate(wd.date) === fortnight);
-  const n = days.length;
-  const totalMinutes = days.reduce((acc, wd) => acc + totalMinutesForDay(wd), 0);
-  const extraMinutes = days.reduce((acc, wd) => acc + extraMinutesForDay(wd), 0);
-  const missingMinutes = days.reduce(
+  const daysInFortnight = workDays.filter(
+    (wd) => fortnightFromDate(wd.date) === fortnight
+  );
+  const daysWithWorkedTime = daysInFortnight.filter(
+    (wd) => effectiveWorkedMinutes(wd) > 0
+  );
+  const n = daysWithWorkedTime.length;
+  const totalMinutes = daysInFortnight.reduce(
+    (acc, wd) => acc + effectiveWorkedMinutes(wd),
+    0
+  );
+  const extraMinutes = daysInFortnight.reduce(
+    (acc, wd) => acc + extraMinutesForDay(wd),
+    0
+  );
+  const missingMinutes = daysInFortnight.reduce(
     (acc, wd) => acc + missingMinutesForDay(wd),
     0
   );
 
-  const referenceNormalMinutes = n * JORNADA_PADRAO_MINUTOS_DIA;
+  const referenceNormalMinutes = daysWithWorkedTime.reduce(
+    (acc, wd) => acc + expectedMinutesForDate(wd.date),
+    0
+  );
   const referenceNormalValue =
     (referenceNormalMinutes / 60) * REAIS_POR_HORA_NORMAL;
   const discountValue = (missingMinutes / 60) * REAIS_POR_HORA_NORMAL;

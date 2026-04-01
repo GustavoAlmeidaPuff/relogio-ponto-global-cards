@@ -6,7 +6,7 @@ import Link from "next/link";
 import { Timestamp } from "firebase/firestore";
 import { useAuth } from "@/hooks/useAuth";
 import { getWorkDay, upsertWorkDayPunches } from "@/lib/firestore";
-import { totalMinutesForDay, formatHours } from "@/hooks/useMonthReport";
+import { effectiveWorkedMinutes, formatHours } from "@/hooks/useMonthReport";
 import type { WorkDay, Punch } from "@/types";
 import { PunchList } from "@/components/PunchList";
 
@@ -386,7 +386,7 @@ export default function DiaPage() {
         <section className="mb-6">
           <p className="text-slate-700">
             Total do dia:{" "}
-            <strong>{formatHours(totalMinutesForDay(workDay))}</strong>
+            <strong>{formatHours(effectiveWorkedMinutes(workDay))}</strong>
           </p>
         </section>
 

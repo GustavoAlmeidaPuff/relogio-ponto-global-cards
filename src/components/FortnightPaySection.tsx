@@ -4,6 +4,7 @@ import type { FortnightPayBreakdown } from "@/lib/fortnightEarnings";
 import {
   formatEarningsBRL,
   formatHours,
+  JORNADA_REFERENCIA_RESUMO,
   REAIS_POR_HORA_EXTRA,
   REAIS_POR_HORA_NORMAL,
 } from "@/hooks/useMonthReport";
@@ -34,9 +35,12 @@ function FortnightCard({ b, title }: { b: FortnightPayBreakdown; title: string }
             <p className="text-xs font-semibold text-slate-600 uppercase tracking-wide">
               Referência de jornada normal
             </p>
+            <p className="text-slate-600 text-xs leading-relaxed mb-1">
+              {JORNADA_REFERENCIA_RESUMO} Soma da jornada prevista nos dias com tempo
+              registrado:
+            </p>
             <p className="text-slate-700 leading-relaxed">
-              {b.daysWithRecords} dia{b.daysWithRecords !== 1 ? "s" : ""} × 8h ×{" "}
-              {formatEarningsBRL(REAIS_POR_HORA_NORMAL)}
+              {formatHours(b.referenceNormalMinutes)} × {formatEarningsBRL(REAIS_POR_HORA_NORMAL)}
               /h
             </p>
             <p className="text-slate-900 font-semibold tabular-nums">
@@ -50,14 +54,15 @@ function FortnightCard({ b, title }: { b: FortnightPayBreakdown; title: string }
           {hasDiscount ? (
             <div className="rounded-xl bg-amber-50/90 border border-amber-100 px-3 py-2.5 space-y-1.5">
               <p className="text-xs font-semibold text-amber-900/80 uppercase tracking-wide">
-                Desconto — horas abaixo de 8h
+                Desconto — abaixo da jornada prevista
               </p>
               <p className="text-amber-950/90 leading-relaxed">
-                Nos dias em que trabalhou menos de 8h, faltaram{" "}
+                Nos dias em que trabalhou menos que a jornada daquele dia (5h ou 9h no
+                sábado), faltaram{" "}
                 <span className="font-medium tabular-nums">
                   {formatHours(b.missingMinutes)}
                 </span>{" "}
-                para completar a jornada de referência.
+                para completar a referência.
               </p>
               <p className="text-amber-950/90 tabular-nums">
                 − ({b.missingMinutes} min ÷ 60) × {formatEarningsBRL(REAIS_POR_HORA_NORMAL)}
@@ -66,14 +71,14 @@ function FortnightCard({ b, title }: { b: FortnightPayBreakdown; title: string }
             </div>
           ) : (
             <div className="rounded-xl border border-dashed border-slate-200 px-3 py-2 text-xs text-slate-500">
-              Sem desconto por falta à jornada de 8h (todos os dias com registro têm
-              8h ou mais trabalhadas).
+              Sem desconto: em todos os dias com ponto o tempo trabalhado atingiu ou
+              passou da jornada prevista ({JORNADA_REFERENCIA_RESUMO}).
             </div>
           )}
 
           <div className="rounded-xl bg-slate-50 border border-slate-100 px-3 py-2.5 space-y-1.5">
             <p className="text-xs font-semibold text-slate-600 uppercase tracking-wide">
-              Horas extras (acima de 8h no mesmo dia)
+              Horas extras (acima de 5h ou de 9h no sábado)
             </p>
             {hasExtra ? (
               <>
@@ -143,8 +148,8 @@ export function FortnightPaySection({
           Quanto receber — por quinzena
         </h2>
         <p className="text-slate-600 text-sm mt-1 max-w-3xl">
-          Demonstrativo: referência de 8h por dia (nos dias com registro), desconto
-          quando trabalhou menos que 8h, e horas extras a{" "}
+          Demonstrativo: {JORNADA_REFERENCIA_RESUMO} Nos dias com registro, desconto
+          quando faltou tempo em relação à jornada daquele dia, e horas extras a{" "}
           {formatEarningsBRL(REAIS_POR_HORA_EXTRA)}/h. O total da quinzena é:{" "}
           <span className="font-medium text-slate-800">
             ref. normal − desconto + extras

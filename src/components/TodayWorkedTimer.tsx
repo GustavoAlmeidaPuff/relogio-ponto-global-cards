@@ -9,14 +9,15 @@ import {
   type LocalInterval,
 } from "@/lib/workDayTotal";
 import {
-  JORNADA_PADRAO_MINUTOS_DIA,
+  expectedMinutesForDate,
   earningsFromMinutes,
   formatEarningsBRL,
 } from "@/hooks/useMonthReport";
 
-function msToReais(ms: number): string {
+function msToReais(ms: number, today: string): string {
   const totalMinutes = ms / (1000 * 60);
-  const extraMinutes = Math.max(0, totalMinutes - JORNADA_PADRAO_MINUTOS_DIA);
+  const expected = expectedMinutesForDate(today);
+  const extraMinutes = Math.max(0, totalMinutes - expected);
   return formatEarningsBRL(earningsFromMinutes(totalMinutes, extraMinutes));
 }
 
@@ -46,7 +47,7 @@ export function TodayWorkedTimer({
     openDetails,
     now
   );
-  const valorReais = useMemo(() => msToReais(totalMs), [totalMs]);
+  const valorReais = useMemo(() => msToReais(totalMs, today), [totalMs, today]);
 
   useEffect(() => {
     if (!openIsToday) return;
@@ -72,7 +73,7 @@ export function TodayWorkedTimer({
         >
           {valorReais}
           <span className="text-slate-500 font-normal text-xs ml-1">
-            (23,08/h · 25/h extra)
+            (23,08/h · 25/h extra; jornada 5h / sáb. 9h)
           </span>
         </p>
       )}
