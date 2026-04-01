@@ -368,6 +368,29 @@ const styles = StyleSheet.create({
     color: colors.textMuted,
     lineHeight: 1.35,
   },
+  fortnightSummaryBlock: {
+    marginBottom: 8,
+    padding: 8,
+    borderRadius: 4,
+    borderWidth: 1,
+    borderColor: colors.border,
+    backgroundColor: "#f8fafc",
+  },
+  fortnightSummaryLine: {
+    fontSize: 8,
+    color: colors.text,
+    marginBottom: 3,
+    lineHeight: 1.4,
+  },
+  fortnightDiscountSaldo: {
+    fontSize: 9,
+    color: "#78350f",
+    fontWeight: "bold",
+    marginTop: 6,
+    paddingTop: 6,
+    borderTopWidth: 1,
+    borderTopColor: "#fcd34d",
+  },
 });
 
 function FortnightPdfCard({
@@ -383,7 +406,7 @@ function FortnightPdfCard({
 
   if (b.daysWithRecords === 0) {
     return (
-      <View style={styles.fortnightCard} wrap={false}>
+      <View style={styles.fortnightCard}>
         <Text style={styles.fortnightCardTitle}>{title}</Text>
         <Text style={styles.fortnightRange}>{b.labelRange}</Text>
         <Text style={styles.fortnightBody}>
@@ -397,23 +420,33 @@ function FortnightPdfCard({
   }
 
   return (
-    <View style={styles.fortnightCard} wrap={false}>
+    <View style={styles.fortnightCard}>
       <Text style={styles.fortnightCardTitle}>{title}</Text>
       <Text style={styles.fortnightRange}>{b.labelRange}</Text>
       <Text style={[styles.fortnightBody, { marginBottom: 8 }]}>
         {b.daysWithRecords} dia{b.daysWithRecords !== 1 ? "s" : ""} com ponto
       </Text>
 
-      <Text style={[styles.fortnightBody, { fontSize: 8, marginBottom: 8, color: colors.textMuted }]}>
-        Total trab.: {formatHours(b.totalMinutes)} · Ref. cal.:{" "}
-        {formatHours(b.referenceNormalMinutes)} · Esperadas:{" "}
-        {formatHours(b.expectedEffectiveMinutes)}
-      </Text>
+      <View style={styles.fortnightSummaryBlock}>
+        <Text style={styles.fortnightSummaryLine}>
+          <Text style={{ color: colors.textMuted }}>Tempo total trabalhado: </Text>
+          {formatHours(b.totalMinutes)}
+        </Text>
+        <Text style={styles.fortnightSummaryLine}>
+          <Text style={{ color: colors.textMuted }}>Referência calendário (seg–sáb): </Text>
+          {formatHours(b.referenceNormalMinutes)}
+        </Text>
+        <Text style={styles.fortnightSummaryLine}>
+          <Text style={{ color: colors.textMuted }}>Horas esperadas (ref. − dia sem ponto): </Text>
+          {formatHours(b.expectedEffectiveMinutes)}
+        </Text>
+      </View>
 
       <View style={styles.fortnightBlock}>
         <Text style={styles.fortnightBlockLabel}>1. Ganhos — horas normais</Text>
         <Text style={[styles.fortnightBody, { fontSize: 8, color: colors.textMuted }]}>
-          {JORNADA_REFERENCIA_RESUMO} Total − extras brutas.
+          {JORNADA_REFERENCIA_RESUMO} Base = tempo total − extras brutas (
+          {formatHours(b.totalMinutes)} − {formatHours(b.grossExtraMinutes)}).
         </Text>
         <Text style={[styles.fortnightBody, { marginTop: 4 }]}>
           {formatHours(b.clockNormalMinutes)} × {formatEarningsBRL(REAIS_POR_HORA_NORMAL)}/h ={" "}
@@ -423,35 +456,48 @@ function FortnightPdfCard({
 
       <View style={styles.fortnightBlock}>
         <Text style={styles.fortnightBlockLabel}>2. Horas extras brutas</Text>
-        <Text style={styles.fortnightBody}>
+        <Text style={[styles.fortnightBody, { fontSize: 8, color: colors.textMuted }]}>
+          Trabalhado além das horas esperadas (item acima): total − esperadas.
+        </Text>
+        <Text style={[styles.fortnightBody, { marginTop: 4, fontWeight: "bold" }]}>
           {hasBrutas ? formatHours(b.grossExtraMinutes) : "0h 00min"}
         </Text>
       </View>
 
       {hasFalta ? (
         <View style={styles.fortnightDiscountBlock}>
-          <Text style={styles.fortnightDiscountLabel}>3. Faltas (abatem das brutas)</Text>
+          <Text style={styles.fortnightDiscountLabel}>3. Faltas (abatem das extras brutas)</Text>
           <Text style={styles.fortnightDiscountText}>
-            {formatHours(b.missingMinutes)} (−{formatEarningsBRL(b.discountValue)} na taxa normal,
-            reduz saldo extra). Saldo: {formatHours(b.grossExtraMinutes)} −{" "}
+            Falta à jornada prevista (dia sem ponto, saiu mais cedo, etc.):{" "}
+            {formatHours(b.missingMinutes)}. Equivale a {formatEarningsBRL(b.discountValue)} na taxa
+            normal, mas no cálculo{" "}
+            <Text style={{ fontWeight: "bold" }}>reduz o saldo de horas extra</Text>, não a linha 1.
+          </Text>
+          <Text style={styles.fortnightDiscountSaldo}>
+            Saldo extras (brutas − faltas): {formatHours(b.grossExtraMinutes)} −{" "}
             {formatHours(b.missingMinutes)} = {formatHours(b.formattedExtraMinutes)}
           </Text>
         </View>
       ) : (
         <View style={styles.dashedNote}>
-          <Text style={styles.dashedNoteText}>3. Sem falta.</Text>
+          <Text style={styles.dashedNoteText}>
+            3. Faltas (abatem das extras brutas): nenhuma falta registrada na referência.
+          </Text>
         </View>
       )}
 
       <View style={styles.fortnightBlock}>
-        <Text style={styles.fortnightBlockLabel}>4. Ganhos — extras líquidas</Text>
+        <Text style={styles.fortnightBlockLabel}>4. Ganhos — horas extras (líquidas)</Text>
+        <Text style={[styles.fortnightBody, { fontSize: 8, color: colors.textMuted }]}>
+          Saldo do passo 3 × {formatEarningsBRL(REAIS_POR_HORA_EXTRA)}/h.
+        </Text>
         {hasLiquidas ? (
-          <Text style={styles.fortnightBody}>
+          <Text style={[styles.fortnightBody, { marginTop: 4 }]}>
             {formatHours(b.formattedExtraMinutes)} × {formatEarningsBRL(REAIS_POR_HORA_EXTRA)}/h ={" "}
             {formatEarningsBRL(b.formattedExtraValue)}
           </Text>
         ) : (
-          <Text style={[styles.fortnightBody, { fontSize: 8, color: colors.textMuted }]}>
+          <Text style={[styles.fortnightBody, { marginTop: 4, fontSize: 8, color: colors.textMuted }]}>
             R$ 0,00
           </Text>
         )}
@@ -464,6 +510,9 @@ function FortnightPdfCard({
           {hasLiquidas ? ` + ${formatEarningsBRL(b.formattedExtraValue)}` : ""} =
         </Text>
         <Text style={styles.fortnightTotalValue}>{formatEarningsBRL(b.totalValue)}</Text>
+        <Text style={styles.fortnightCheckLine}>
+          Tempo registrado no período: {formatHours(b.totalMinutes)}
+        </Text>
       </View>
     </View>
   );
