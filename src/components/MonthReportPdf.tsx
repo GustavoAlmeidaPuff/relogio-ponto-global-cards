@@ -470,9 +470,10 @@ function FortnightPdfCard({
         </Text>
         <Text style={styles.fortnightTotalValue}>{formatEarningsBRL(b.totalValue)}</Text>
         <Text style={[styles.fortnightCheckLine, { marginTop: 6 }]}>
-          Tempo total registrado: {formatHours(b.totalMinutes)} (soma dos dias). Para o valor,
-          o mesmo tempo é dividido (não duplicado): {formatHours(b.totalMinutes - b.extraMinutes)} +{" "}
-          {formatHours(b.extraMinutes)} = {formatHours(b.totalMinutes)}.
+          Tempo total: {formatHours(b.totalMinutes)}. O valor não é (total × normal) + (extras ×
+          extra) — isso duplicaria as extras. Cada minuto entra só numa alíquota:{" "}
+          {formatHours(b.totalMinutes - b.extraMinutes)} + {formatHours(b.extraMinutes)} ={" "}
+          {formatHours(b.totalMinutes)}.
         </Text>
         <Text style={styles.fortnightCheckLine}>
           Conferência: {formatHours(b.totalMinutes - b.extraMinutes)} ×{" "}

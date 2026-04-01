@@ -110,13 +110,18 @@ function FortnightCard({ b, title }: { b: FortnightPayBreakdown; title: string }
             <p className="text-xl sm:text-2xl font-bold text-emerald-950 tabular-nums mt-1">
               {formatEarningsBRL(b.totalValue)}
             </p>
-            <p className="text-xs text-emerald-900/90 mt-3 rounded-lg bg-white/70 border border-emerald-100/80 px-2.5 py-2 leading-relaxed">
-              <span className="font-medium text-emerald-950">Tempo total registrado: </span>
-              {formatHours(b.totalMinutes)} — igual à soma dos dias no período. As linhas
-              abaixo não somam tempo em cima desse total: é só a divisão do{" "}
-              <em>mesmo</em> tempo para duas alíquotas (trecho dentro da jornada do dia a{" "}
-              {formatEarningsBRL(REAIS_POR_HORA_NORMAL)}/h e trecho extra a{" "}
-              {formatEarningsBRL(REAIS_POR_HORA_EXTRA)}/h).
+            <p className="text-xs text-emerald-900/90 mt-3 rounded-lg bg-white/70 border border-emerald-100/80 px-2.5 py-2 leading-relaxed space-y-2">
+              <span>
+                <span className="font-medium text-emerald-950">Tempo total registrado: </span>
+                {formatHours(b.totalMinutes)} — soma dos dias no período.
+              </span>
+              <span className="block">
+                O valor <strong>não</strong> é “todo o tempo × {formatEarningsBRL(REAIS_POR_HORA_NORMAL)}
+                /h + extras × {formatEarningsBRL(REAIS_POR_HORA_EXTRA)}/h”: isso pagaria as horas
+                extras <strong>duas vezes</strong> (dentro do total à taxa normal e de novo à taxa
+                extra). Por isso o sistema separa: minutos pagos à taxa normal = total − minutos
+                extra; cada minuto entra <strong>só numa</strong> alíquota.
+              </span>
             </p>
             <p className="text-xs text-emerald-800/80 mt-2 tabular-nums">
               Conferência: {formatHours(b.totalMinutes - b.extraMinutes)} +{" "}
