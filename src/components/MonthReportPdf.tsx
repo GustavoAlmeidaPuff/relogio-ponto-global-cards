@@ -469,11 +469,16 @@ function FortnightPdfCard({
           {hasExtra ? ` + ${formatEarningsBRL(b.extraValue)}` : ""} =
         </Text>
         <Text style={styles.fortnightTotalValue}>{formatEarningsBRL(b.totalValue)}</Text>
+        <Text style={[styles.fortnightCheckLine, { marginTop: 6 }]}>
+          Tempo total registrado: {formatHours(b.totalMinutes)} (soma dos dias). Para o valor,
+          o mesmo tempo é dividido (não duplicado): {formatHours(b.totalMinutes - b.extraMinutes)} +{" "}
+          {formatHours(b.extraMinutes)} = {formatHours(b.totalMinutes)}.
+        </Text>
         <Text style={styles.fortnightCheckLine}>
-          Conferência: horas normais efetivas ({formatHours(b.totalMinutes - b.extraMinutes)}) ×{" "}
+          Conferência: {formatHours(b.totalMinutes - b.extraMinutes)} ×{" "}
           {formatEarningsBRL(REAIS_POR_HORA_NORMAL)}/h
           {hasExtra
-            ? ` + horas extras (${formatHours(b.extraMinutes)}) × ${formatEarningsBRL(REAIS_POR_HORA_EXTRA)}/h`
+            ? ` + ${formatHours(b.extraMinutes)} × ${formatEarningsBRL(REAIS_POR_HORA_EXTRA)}/h`
             : ""}
           .
         </Text>

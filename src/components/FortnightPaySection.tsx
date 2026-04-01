@@ -110,13 +110,22 @@ function FortnightCard({ b, title }: { b: FortnightPayBreakdown; title: string }
             <p className="text-xl sm:text-2xl font-bold text-emerald-950 tabular-nums mt-1">
               {formatEarningsBRL(b.totalValue)}
             </p>
-            <p className="text-xs text-emerald-800/80 mt-2">
-              Conferência: horas normais efetivas ({formatHours(b.totalMinutes - b.extraMinutes)}) ×{" "}
-              {formatEarningsBRL(REAIS_POR_HORA_NORMAL)}/h
+            <p className="text-xs text-emerald-900/90 mt-3 rounded-lg bg-white/70 border border-emerald-100/80 px-2.5 py-2 leading-relaxed">
+              <span className="font-medium text-emerald-950">Tempo total registrado: </span>
+              {formatHours(b.totalMinutes)} — igual à soma dos dias no período. As linhas
+              abaixo não somam tempo em cima desse total: é só a divisão do{" "}
+              <em>mesmo</em> tempo para duas alíquotas (trecho dentro da jornada do dia a{" "}
+              {formatEarningsBRL(REAIS_POR_HORA_NORMAL)}/h e trecho extra a{" "}
+              {formatEarningsBRL(REAIS_POR_HORA_EXTRA)}/h).
+            </p>
+            <p className="text-xs text-emerald-800/80 mt-2 tabular-nums">
+              Conferência: {formatHours(b.totalMinutes - b.extraMinutes)} +{" "}
+              {formatHours(b.extraMinutes)} = {formatHours(b.totalMinutes)} ·{" "}
+              {formatHours(b.totalMinutes - b.extraMinutes)} × {formatEarningsBRL(REAIS_POR_HORA_NORMAL)}
+              /h
               {hasExtra
-                ? ` + horas extras (${formatHours(b.extraMinutes)}) × ${formatEarningsBRL(REAIS_POR_HORA_EXTRA)}/h`
+                ? ` + ${formatHours(b.extraMinutes)} × ${formatEarningsBRL(REAIS_POR_HORA_EXTRA)}/h`
                 : ""}
-              .
             </p>
           </div>
         </div>
