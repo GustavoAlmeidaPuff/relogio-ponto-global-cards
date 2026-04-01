@@ -4,26 +4,18 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useAuth } from "@/hooks/useAuth";
-import { useMonthReport } from "@/hooks/useMonthReport";
+import {
+  useMonthReport,
+  totalExtraMinutes,
+  earningsFromMinutes,
+  formatEarningsBRL,
+} from "@/hooks/useMonthReport";
 import { getMonthClosure } from "@/lib/firestore";
-
-const REAIS_POR_HORA = 23.08;
 
 function formatMonthLabel(mes: string): string {
   return new Date(mes + "-01T12:00:00").toLocaleDateString("pt-BR", {
     month: "long",
     year: "numeric",
-  });
-}
-
-function minutesToReais(minutes: number): string {
-  const horas = minutes / 60;
-  const reais = horas * REAIS_POR_HORA;
-  return reais.toLocaleString("pt-BR", {
-    style: "currency",
-    currency: "BRL",
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
   });
 }
 
@@ -35,9 +27,17 @@ export default function RelatoriosPage() {
   const now = new Date();
   const currentMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
 
-  const { totalMinutes: currentMonthMinutes, loading: monthLoading } = useMonthReport(
-    user?.uid,
-    currentMonth
+  const {
+    workDays: currentMonthDays,
+    totalMinutes: currentMonthMinutes,
+    loading: monthLoading,
+  } = useMonthReport(user?.uid, currentMonth);
+
+  const valorMesReais = formatEarningsBRL(
+    earningsFromMinutes(
+      currentMonthMinutes,
+      totalExtraMinutes(currentMonthDays)
+    )
   );
 
   useEffect(() => {
@@ -50,8 +50,6 @@ export default function RelatoriosPage() {
       setCurrentMonthClosed(!!closure?.closedAt);
     });
   }, [user?.uid, currentMonth]);
-
-  const valorMesReais = minutesToReais(currentMonthMinutes);
 
   if (loading || !user) {
     return (
@@ -121,7 +119,10 @@ export default function RelatoriosPage() {
             {!monthLoading && (
               <p className="text-emerald-700 font-medium text-sm mt-2">
                 Total do mês: {valorMesReais}
-                <span className="text-slate-500 font-normal"> (R$ 23,08/h)</span>
+                <span className="text-slate-500 font-normal">
+                  {" "}
+                  (23,08/h · 25/h extra)
+                </span>
               </p>
             )}
           </Link>

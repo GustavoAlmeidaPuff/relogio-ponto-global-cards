@@ -1,7 +1,7 @@
 "use client";
 
 import { useParams, useRouter } from "next/navigation";
-import { useEffect, useMemo, useCallback } from "react";
+import { useEffect, useMemo, useCallback, useState } from "react";
 import Link from "next/link";
 import { useAuth } from "@/hooks/useAuth";
 import { useWorkDay } from "@/hooks/useWorkDay";
@@ -10,12 +10,16 @@ import {
   totalMinutesForDay,
   formatHours,
   groupByWeek,
+  extraMinutesForDay,
+  totalExtraMinutes,
+  earningsFromMinutes,
+  formatEarningsBRL,
 } from "@/hooks/useMonthReport";
 import { getWorkDaysInMonth, getMonthClosure } from "@/lib/firestore";
 import { CloseMonthButton } from "@/components/CloseMonthButton";
 import { PdfExportButton } from "@/components/PdfExportButton";
-
-const REAIS_POR_HORA = 23.08;
+import { FortnightPaySection } from "@/components/FortnightPaySection";
+import { buildMonthFortnightBreakdowns } from "@/lib/fortnightEarnings";
 
 function formatDayDate(dateStr: string): string {
   return new Date(dateStr + "T12:00:00").toLocaleDateString("pt-BR", {
@@ -25,16 +29,13 @@ function formatDayDate(dateStr: string): string {
   });
 }
 
-function minutesToReais(minutes: number): string {
-  const horas = minutes / 60;
-  const reais = horas * REAIS_POR_HORA;
-  return reais.toLocaleString("pt-BR", {
-    style: "currency",
-    currency: "BRL",
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  });
+function minutesToReais(totalMinutes: number, extraMinutes: number): string {
+  return formatEarningsBRL(
+    earningsFromMinutes(totalMinutes, extraMinutes)
+  );
 }
+
+type DashTab = "mes" | "semanas" | "dias";
 
 export default function MesPage() {
   const params = useParams();
@@ -66,6 +67,21 @@ export default function MesPage() {
     loading,
     refresh,
   } = useMonthReport(user?.uid, validMes ?? "2000-01");
+  const totalExtraMin = useMemo(
+    () => totalExtraMinutes(workDays),
+    [workDays]
+  );
+  const [dashTab, setDashTab] = useState<DashTab>("mes");
+
+  const fortnightBreakdowns = useMemo(
+    () => buildMonthFortnightBreakdowns(workDays, validMes ?? "2000-01"),
+    [workDays, validMes]
+  );
+  const monthTotalPay = useMemo(
+    () =>
+      fortnightBreakdowns[0].totalValue + fortnightBreakdowns[1].totalValue,
+    [fortnightBreakdowns]
+  );
 
   const prepareExport = useCallback(async () => {
     if (!user?.uid || !validMes) {
@@ -143,7 +159,7 @@ export default function MesPage() {
           </button>
         </div>
       </header>
-      <main className="max-w-3xl mx-auto p-4 sm:p-6">
+      <main className="max-w-7xl mx-auto p-4 sm:p-6">
         <div className="flex flex-wrap gap-3 mb-6">
           <CloseMonthButton
             userId={user.uid}
@@ -165,64 +181,282 @@ export default function MesPage() {
         {loading ? (
           <p className="text-slate-500">Carregando...</p>
         ) : (
-          <>
-            <section className="mb-6">
-              <h2 className="text-lg font-semibold text-slate-800 mb-1">
-                Resumo do mês
-              </h2>
-              <p className="text-slate-700">
-                Total: <strong>{formatHours(totalMinutes)}</strong> (
-                {workDays.length} dia{workDays.length !== 1 ? "s" : ""} com
-                registro)
-              </p>
-              <p className="text-emerald-700 font-medium mt-1">
-                Total no mês: {minutesToReais(totalMinutes)}
-                <span className="text-slate-500 font-normal text-sm ml-1">(R$ 23,08/h)</span>
-              </p>
-            </section>
+          <div className="space-y-4 sm:space-y-5">
+            <div
+              className="grid grid-cols-1 sm:grid-cols-3 gap-3"
+              role="tablist"
+              aria-label="Tipo de visão do relatório"
+            >
+              <button
+                type="button"
+                role="tab"
+                id="tab-mes"
+                aria-selected={dashTab === "mes"}
+                aria-controls="panel-mes"
+                onClick={() => setDashTab("mes")}
+                className={`text-left rounded-2xl border p-4 sm:p-5 shadow-[0_8px_30px_rgb(15,23,42,0.06)] transition-colors min-h-[120px] flex flex-col justify-between ${
+                  dashTab === "mes"
+                    ? "border-blue-500 bg-blue-50/60 ring-2 ring-blue-400/40"
+                    : "border-slate-200/90 bg-white hover:bg-slate-50"
+                }`}
+              >
+                <span className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                  Mês
+                </span>
+                <span className="font-bold text-slate-900 capitalize text-base sm:text-lg leading-tight mt-1">
+                  {monthLabel}
+                </span>
+                <span className="text-slate-600 text-sm mt-2 tabular-nums break-words">
+                  {formatHours(totalMinutes)} ·{" "}
+                  {minutesToReais(totalMinutes, totalExtraMin)}
+                </span>
+              </button>
 
-            <section>
-              <h2 className="text-lg font-semibold text-slate-800 mb-3">
-                Dias registrados
-              </h2>
-              <p className="text-slate-600 text-sm mb-3">
-                Clique no dia para ver todos os registros (entrada/saída e o que
-                você fez).
-              </p>
-              {workDays.length === 0 ? (
-                <p className="text-slate-500 py-4">
-                  Nenhum dia registrado neste mês.
-                </p>
-              ) : (
-                <ul className="space-y-2">
-                  {workDays.map((wd) => (
-                    <li key={wd.id}>
-                      <Link
-                        href={`/relatorios/mes/${validMes}/dia/${wd.date}`}
-                        className="block p-4 bg-white rounded-lg border border-slate-200 hover:border-blue-300 hover:bg-slate-50 transition"
+              <button
+                type="button"
+                role="tab"
+                id="tab-semanas"
+                aria-selected={dashTab === "semanas"}
+                aria-controls="panel-semanas"
+                onClick={() => setDashTab("semanas")}
+                className={`text-left rounded-2xl border p-4 sm:p-5 shadow-[0_8px_30px_rgb(15,23,42,0.06)] transition-colors min-h-[120px] flex flex-col justify-between ${
+                  dashTab === "semanas"
+                    ? "border-blue-500 bg-blue-50/60 ring-2 ring-blue-400/40"
+                    : "border-slate-200/90 bg-white hover:bg-slate-50"
+                }`}
+              >
+                <span className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                  Semanas
+                </span>
+                <span className="font-bold text-slate-900 text-base sm:text-lg mt-1">
+                  Por semana
+                </span>
+                <span className="text-slate-600 text-sm mt-2">
+                  {weekSummaries.length} semana
+                  {weekSummaries.length !== 1 ? "s" : ""} · toque para ver
+                </span>
+              </button>
+
+              <button
+                type="button"
+                role="tab"
+                id="tab-dias"
+                aria-selected={dashTab === "dias"}
+                aria-controls="panel-dias"
+                onClick={() => setDashTab("dias")}
+                className={`text-left rounded-2xl border p-4 sm:p-5 shadow-[0_8px_30px_rgb(15,23,42,0.06)] transition-colors min-h-[120px] flex flex-col justify-between ${
+                  dashTab === "dias"
+                    ? "border-blue-500 bg-blue-50/60 ring-2 ring-blue-400/40"
+                    : "border-slate-200/90 bg-white hover:bg-slate-50"
+                }`}
+              >
+                <span className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                  Dias
+                </span>
+                <span className="font-bold text-slate-900 text-base sm:text-lg mt-1">
+                  Por dia
+                </span>
+                <span className="text-slate-600 text-sm mt-2">
+                  {workDays.length} dia{workDays.length !== 1 ? "s" : ""} ·
+                  horas e valores
+                </span>
+              </button>
+            </div>
+
+            {dashTab === "mes" && (
+              <div
+                id="panel-mes"
+                role="tabpanel"
+                aria-labelledby="tab-mes"
+                className="space-y-6 sm:space-y-8"
+              >
+                <FortnightPaySection
+                  fortnights={fortnightBreakdowns}
+                  monthTotal={monthTotalPay}
+                />
+
+                <section
+                  className="rounded-2xl border border-slate-200/90 bg-white p-5 sm:p-6 shadow-[0_8px_30px_rgb(15,23,42,0.08)]"
+                  aria-labelledby="dash-mes-heading"
+                >
+                  <div className="flex items-start justify-between gap-2 mb-4">
+                    <div>
+                      <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                        Visão do mês
+                      </p>
+                      <h2
+                        id="dash-mes-heading"
+                        className="text-xl font-bold text-slate-900 capitalize mt-1"
                       >
-                        <div className="flex justify-between items-center flex-wrap gap-2">
-                          <span className="font-medium text-slate-800 capitalize">
-                            {formatDayDate(wd.date)}
-                          </span>
-                          <span className="text-slate-600 font-medium">
-                            {formatHours(totalMinutesForDay(wd))}
-                          </span>
-                        </div>
-                        <p className="text-emerald-700 text-sm font-medium mt-1">
-                          {minutesToReais(totalMinutesForDay(wd))}
-                          <span className="text-slate-500 font-normal"> (R$ 23,08/h)</span>
+                        {monthLabel}
+                      </h2>
+                    </div>
+                    {closedAt && (
+                      <span className="shrink-0 rounded-full bg-slate-100 px-2.5 py-1 text-xs font-medium text-slate-700">
+                        Fechado
+                      </span>
+                    )}
+                  </div>
+                  {closedAt && (
+                    <p className="text-slate-600 text-sm mb-4">
+                      Fechamento:{" "}
+                      {closedAt.toDate?.()
+                        ? closedAt.toDate().toLocaleDateString("pt-BR")
+                        : "—"}
+                    </p>
+                  )}
+                  <div className="space-y-4">
+                    <div className="rounded-xl bg-gradient-to-br from-slate-50 to-slate-100/80 p-4 border border-slate-100">
+                      <p className="text-xs text-slate-600 mb-1">Horas no mês</p>
+                      <p className="text-3xl sm:text-4xl font-bold tabular-nums text-slate-900 tracking-tight">
+                        {formatHours(totalMinutes)}
+                      </p>
+                    </div>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
+                      <div className="rounded-lg bg-emerald-50/90 border border-emerald-100 px-3 py-2.5">
+                        <p className="text-emerald-800/80 text-xs leading-snug">
+                          Valor (23,08/h · 25/h extra)
                         </p>
-                        <span className="text-slate-500 text-sm mt-1 inline-block">
-                          Ver registros do dia →
-                        </span>
-                      </Link>
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </section>
-          </>
+                        <p className="font-semibold text-emerald-900 tabular-nums">
+                          {minutesToReais(totalMinutes, totalExtraMin)}
+                        </p>
+                      </div>
+                      <div className="rounded-lg bg-slate-50 border border-slate-100 px-3 py-2.5">
+                        <p className="text-slate-600 text-xs">Dias com registro</p>
+                        <p className="font-semibold text-slate-900 tabular-nums">
+                          {workDays.length}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                </section>
+              </div>
+            )}
+
+            {dashTab === "semanas" && (
+              <section
+                id="panel-semanas"
+                role="tabpanel"
+                aria-labelledby="tab-semanas"
+                className="rounded-2xl border border-slate-200/90 bg-white p-5 sm:p-6 shadow-[0_8px_30px_rgb(15,23,42,0.08)] min-w-0"
+              >
+                <div className="mb-4">
+                  <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                    Por semana
+                  </p>
+                  <h2 className="text-lg font-bold text-slate-900 mt-1">
+                    Distribuição semanal
+                  </h2>
+                </div>
+                {weekSummaries.length === 0 ? (
+                  <p className="text-slate-500 text-sm py-8 text-center">
+                    Nenhuma semana com registros neste mês.
+                  </p>
+                ) : (
+                  <ul className="space-y-2">
+                    {weekSummaries.map((w, i) => {
+                      const pct =
+                        totalMinutes > 0
+                          ? Math.round((w.totalMinutes / totalMinutes) * 100)
+                          : 0;
+                      const weekExtra = w.days.reduce(
+                        (acc, d) => acc + extraMinutesForDay(d),
+                        0
+                      );
+                      return (
+                        <li
+                          key={`${w.weekLabel}-${i}`}
+                          className="rounded-xl border border-slate-100 bg-slate-50/80 p-3 sm:p-4"
+                        >
+                          <div className="flex justify-between items-center gap-2 mb-2 flex-wrap">
+                            <span className="text-slate-800 font-medium text-sm sm:text-base">
+                              Semana {w.weekLabel}
+                            </span>
+                            <span className="text-slate-700 font-semibold tabular-nums text-sm shrink-0">
+                              {formatHours(w.totalMinutes)}
+                            </span>
+                          </div>
+                          <p className="text-emerald-800 text-xs sm:text-sm font-medium mb-2">
+                            {minutesToReais(w.totalMinutes, weekExtra)}
+                          </p>
+                          <div
+                            className="h-1.5 rounded-full bg-slate-200 overflow-hidden"
+                            role="presentation"
+                          >
+                            <div
+                              className="h-full rounded-full bg-blue-500/90 transition-[width]"
+                              style={{ width: `${pct}%` }}
+                            />
+                          </div>
+                          <p className="text-slate-500 text-xs mt-1.5">
+                            {pct}% do mês · {w.days.length} dia
+                            {w.days.length !== 1 ? "s" : ""}
+                          </p>
+                        </li>
+                      );
+                    })}
+                  </ul>
+                )}
+              </section>
+            )}
+
+            {dashTab === "dias" && (
+              <section
+                id="panel-dias"
+                role="tabpanel"
+                aria-labelledby="tab-dias"
+                className="rounded-2xl border border-slate-200/90 bg-white p-5 sm:p-6 shadow-[0_8px_30px_rgb(15,23,42,0.08)] min-w-0"
+              >
+                <div className="mb-4">
+                  <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                    Por dia
+                  </p>
+                  <h2 className="text-lg font-bold text-slate-900 mt-1">
+                    Todos os dias
+                  </h2>
+                  <p className="text-slate-600 text-sm mt-2">
+                    Horas trabalhadas e valor por dia (23,08/h · 25/h extra).
+                    Toque em um dia para ver entradas, saídas e anotações.
+                  </p>
+                </div>
+                {workDays.length === 0 ? (
+                  <p className="text-slate-500 text-sm py-8 text-center">
+                    Nenhum dia registrado neste mês.
+                  </p>
+                ) : (
+                  <ul className="space-y-2">
+                    {workDays.map((wd) => {
+                      const dayMin = totalMinutesForDay(wd);
+                      const dayExtra = extraMinutesForDay(wd);
+                      return (
+                        <li key={wd.id}>
+                          <Link
+                            href={`/relatorios/mes/${validMes}/dia/${wd.date}`}
+                            className="block rounded-xl border border-slate-100 bg-slate-50/50 p-3 sm:p-4 hover:border-blue-200 hover:bg-blue-50/40 transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500"
+                          >
+                            <div className="flex justify-between items-start gap-2 flex-wrap">
+                              <span className="font-medium text-slate-800 capitalize text-sm sm:text-base">
+                                {formatDayDate(wd.date)}
+                              </span>
+                              <span className="text-slate-700 font-semibold tabular-nums text-sm shrink-0">
+                                {formatHours(dayMin)}
+                              </span>
+                            </div>
+                            <p className="text-emerald-800 text-xs sm:text-sm font-medium mt-1.5">
+                              {minutesToReais(dayMin, dayExtra)}
+                            </p>
+                            <span className="text-blue-600 text-xs sm:text-sm font-medium mt-2 inline-block">
+                              Abrir dia →
+                            </span>
+                          </Link>
+                        </li>
+                      );
+                    })}
+                  </ul>
+                )}
+              </section>
+            )}
+          </div>
         )}
       </main>
     </div>

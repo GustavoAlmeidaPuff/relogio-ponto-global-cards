@@ -9,7 +9,17 @@ import {
 } from "@react-pdf/renderer";
 import type { WorkDay } from "@/types";
 import type { WeekSummary } from "@/hooks/useMonthReport";
-import { totalMinutesForDay, formatHours } from "@/hooks/useMonthReport";
+import {
+  totalMinutesForDay,
+  formatHours,
+  extraMinutesForDay,
+  totalExtraMinutes,
+  formatEarningsBRL,
+  REAIS_POR_HORA_NORMAL,
+  REAIS_POR_HORA_EXTRA,
+} from "@/hooks/useMonthReport";
+import type { FortnightPayBreakdown } from "@/lib/fortnightEarnings";
+import { buildMonthFortnightBreakdowns } from "@/lib/fortnightEarnings";
 import type { Timestamp } from "firebase/firestore";
 
 function toDate(ts: Timestamp): Date {
@@ -53,11 +63,15 @@ const DAY_BLOCK_BASE_PT = 95;
 const PUNCH_LINE_PT = 18;
 const FEITOS_HEADER_PT = 28;
 const FEITO_ITEM_PT = 14;
+const EXTRA_LINE_PT = 22;
 
 function estimateDayHeightPt(wd: WorkDay): number {
   const records = getDayRecords(wd);
+  const extraLine =
+    extraMinutesForDay(wd) > 0 ? EXTRA_LINE_PT : 0;
   return (
     DAY_BLOCK_BASE_PT +
+    extraLine +
     wd.punches.length * PUNCH_LINE_PT +
     (records.length > 0 ? FEITOS_HEADER_PT + records.length * FEITO_ITEM_PT : 0)
   );
@@ -152,6 +166,8 @@ const styles = StyleSheet.create({
   },
   weekLabel: { fontSize: 10, color: colors.text },
   weekTotal: { fontSize: 10, fontWeight: "bold", color: colors.primary },
+  weekColRight: { alignItems: "flex-end" },
+  weekExtraLine: { fontSize: 9, color: colors.textMuted, marginTop: 2 },
   daysPageBody: {
     paddingHorizontal: 40,
     paddingTop: 20,
@@ -165,14 +181,22 @@ const styles = StyleSheet.create({
     borderColor: colors.border,
     marginBottom: 16,
   },
-  dayTitle: {
-    fontSize: 13,
-    fontWeight: "bold",
+  dayHeader: {
     marginBottom: 12,
-    color: colors.text,
     paddingBottom: 10,
     borderBottomWidth: 1,
     borderBottomColor: colors.border,
+  },
+  dayTitleLine: {
+    fontSize: 13,
+    fontWeight: "bold",
+    color: colors.text,
+  },
+  dayExtra: {
+    fontSize: 10,
+    fontWeight: "normal",
+    color: colors.primary,
+    marginTop: 4,
   },
   punchLine: {
     fontSize: 10,
@@ -193,10 +217,267 @@ const styles = StyleSheet.create({
     marginBottom: 4,
     paddingLeft: 4,
   },
+  fortnightPageBody: {
+    paddingHorizontal: 40,
+    paddingTop: 28,
+    paddingBottom: 40,
+  },
+  fortnightMainTitle: {
+    fontSize: 14,
+    fontWeight: "bold",
+    color: colors.text,
+    marginBottom: 8,
+  },
+  fortnightIntro: {
+    fontSize: 9,
+    color: colors.textMuted,
+    marginBottom: 16,
+    lineHeight: 1.45,
+  },
+  fortnightCard: {
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: 6,
+    padding: 12,
+    marginBottom: 12,
+    backgroundColor: colors.bgCard,
+  },
+  fortnightCardTitle: {
+    fontSize: 11,
+    fontWeight: "bold",
+    color: colors.text,
+    marginBottom: 4,
+  },
+  fortnightRange: {
+    fontSize: 8,
+    color: colors.textMuted,
+    marginBottom: 8,
+    textTransform: "capitalize",
+  },
+  fortnightBlock: {
+    marginBottom: 8,
+    padding: 8,
+    borderRadius: 4,
+    borderWidth: 1,
+    borderColor: colors.border,
+    backgroundColor: "#fff",
+  },
+  fortnightBlockLabel: {
+    fontSize: 7,
+    fontWeight: "bold",
+    color: colors.textMuted,
+    marginBottom: 4,
+    textTransform: "uppercase",
+    letterSpacing: 0.3,
+  },
+  fortnightBody: {
+    fontSize: 9,
+    color: colors.text,
+    lineHeight: 1.4,
+  },
+  fortnightEmphasis: {
+    fontSize: 9,
+    fontWeight: "bold",
+    color: colors.text,
+    marginTop: 4,
+  },
+  fortnightDiscountBlock: {
+    marginBottom: 8,
+    padding: 8,
+    borderRadius: 4,
+    borderWidth: 1,
+    borderColor: "#fcd34d",
+    backgroundColor: "#fffbeb",
+  },
+  fortnightDiscountLabel: {
+    fontSize: 7,
+    fontWeight: "bold",
+    color: "#92400e",
+    marginBottom: 4,
+    textTransform: "uppercase",
+  },
+  fortnightDiscountText: {
+    fontSize: 9,
+    color: "#78350f",
+    lineHeight: 1.4,
+  },
+  fortnightTotalBlock: {
+    marginTop: 6,
+    padding: 10,
+    borderRadius: 4,
+    borderWidth: 1,
+    borderColor: "#6ee7b7",
+    backgroundColor: "#ecfdf5",
+  },
+  fortnightTotalLabel: {
+    fontSize: 7,
+    fontWeight: "bold",
+    color: "#065f46",
+    marginBottom: 4,
+    textTransform: "uppercase",
+  },
+  fortnightTotalFormula: {
+    fontSize: 8,
+    color: "#047857",
+    lineHeight: 1.35,
+    marginBottom: 4,
+  },
+  fortnightTotalValue: {
+    fontSize: 16,
+    fontWeight: "bold",
+    color: "#064e3b",
+  },
+  fortnightCheckLine: {
+    fontSize: 8,
+    color: "#047857",
+    marginTop: 6,
+    lineHeight: 1.35,
+  },
+  fortnightMonthTotalRow: {
+    marginTop: 8,
+    padding: 12,
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: "#6ee7b7",
+    backgroundColor: "#f0fdf4",
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+  },
+  fortnightMonthTotalLabel: {
+    fontSize: 10,
+    fontWeight: "bold",
+    color: "#065f46",
+  },
+  fortnightMonthTotalValue: {
+    fontSize: 12,
+    fontWeight: "bold",
+    color: "#064e3b",
+  },
+  dashedNote: {
+    marginBottom: 8,
+    padding: 8,
+    borderWidth: 1,
+    borderStyle: "dashed",
+    borderColor: colors.border,
+    borderRadius: 4,
+  },
+  dashedNoteText: {
+    fontSize: 8,
+    color: colors.textMuted,
+    lineHeight: 1.35,
+  },
 });
+
+function FortnightPdfCard({
+  b,
+  title,
+}: {
+  b: FortnightPayBreakdown;
+  title: string;
+}) {
+  const hasDiscount = b.missingMinutes > 0;
+  const hasExtra = b.extraMinutes > 0;
+
+  if (b.daysWithRecords === 0) {
+    return (
+      <View style={styles.fortnightCard} wrap={false}>
+        <Text style={styles.fortnightCardTitle}>{title}</Text>
+        <Text style={styles.fortnightRange}>{b.labelRange}</Text>
+        <Text style={styles.fortnightBody}>
+          Nenhum dia com registro neste período.
+        </Text>
+        <Text style={[styles.fortnightEmphasis, { marginTop: 6 }]}>
+          Total: {formatEarningsBRL(0)}
+        </Text>
+      </View>
+    );
+  }
+
+  return (
+    <View style={styles.fortnightCard} wrap={false}>
+      <Text style={styles.fortnightCardTitle}>{title}</Text>
+      <Text style={styles.fortnightRange}>{b.labelRange}</Text>
+      <Text style={[styles.fortnightBody, { marginBottom: 8 }]}>
+        {b.daysWithRecords} dia{b.daysWithRecords !== 1 ? "s" : ""} com ponto
+      </Text>
+
+      <View style={styles.fortnightBlock}>
+        <Text style={styles.fortnightBlockLabel}>Referência de jornada normal</Text>
+        <Text style={styles.fortnightBody}>
+          {b.daysWithRecords} dia{b.daysWithRecords !== 1 ? "s" : ""} × 8h ×{" "}
+          {formatEarningsBRL(REAIS_POR_HORA_NORMAL)}/h
+        </Text>
+        <Text style={styles.fortnightEmphasis}>
+          = {formatEarningsBRL(b.referenceNormalValue)}
+        </Text>
+        <Text style={[styles.fortnightBody, { marginTop: 4, fontSize: 8, color: colors.textMuted }]}>
+          ({formatHours(b.referenceNormalMinutes)} no total de referência)
+        </Text>
+      </View>
+
+      {hasDiscount ? (
+        <View style={styles.fortnightDiscountBlock}>
+          <Text style={styles.fortnightDiscountLabel}>Desconto — horas abaixo de 8h</Text>
+          <Text style={styles.fortnightDiscountText}>
+            Nos dias em que trabalhou menos de 8h, faltaram{" "}
+            {formatHours(b.missingMinutes)} para completar a jornada de referência.
+          </Text>
+          <Text style={[styles.fortnightDiscountText, { marginTop: 4 }]}>
+            − ({b.missingMinutes} min ÷ 60) × {formatEarningsBRL(REAIS_POR_HORA_NORMAL)}
+            /h = −{formatEarningsBRL(b.discountValue)}
+          </Text>
+        </View>
+      ) : (
+        <View style={styles.dashedNote}>
+          <Text style={styles.dashedNoteText}>
+            Sem desconto por falta à jornada de 8h (todos os dias com registro têm 8h ou
+            mais trabalhadas).
+          </Text>
+        </View>
+      )}
+
+      <View style={styles.fortnightBlock}>
+        <Text style={styles.fortnightBlockLabel}>Horas extras (acima de 8h no mesmo dia)</Text>
+        {hasExtra ? (
+          <>
+            <Text style={styles.fortnightBody}>
+              {formatHours(b.extraMinutes)} × {formatEarningsBRL(REAIS_POR_HORA_EXTRA)}/h
+            </Text>
+            <Text style={styles.fortnightEmphasis}>= +{formatEarningsBRL(b.extraValue)}</Text>
+          </>
+        ) : (
+          <Text style={[styles.fortnightBody, { fontSize: 8, color: colors.textMuted }]}>
+            Nenhuma hora extra neste período.
+          </Text>
+        )}
+      </View>
+
+      <View style={styles.fortnightTotalBlock}>
+        <Text style={styles.fortnightTotalLabel}>Total da quinzena</Text>
+        <Text style={styles.fortnightTotalFormula}>
+          {formatEarningsBRL(b.referenceNormalValue)}
+          {hasDiscount ? ` − ${formatEarningsBRL(b.discountValue)}` : ""}
+          {hasExtra ? ` + ${formatEarningsBRL(b.extraValue)}` : ""} =
+        </Text>
+        <Text style={styles.fortnightTotalValue}>{formatEarningsBRL(b.totalValue)}</Text>
+        <Text style={styles.fortnightCheckLine}>
+          Conferência: horas normais efetivas ({formatHours(b.totalMinutes - b.extraMinutes)}) ×{" "}
+          {formatEarningsBRL(REAIS_POR_HORA_NORMAL)}/h
+          {hasExtra
+            ? ` + horas extras (${formatHours(b.extraMinutes)}) × ${formatEarningsBRL(REAIS_POR_HORA_EXTRA)}/h`
+            : ""}
+          .
+        </Text>
+      </View>
+    </View>
+  );
+}
 
 interface MonthReportPdfProps {
   monthLabel: string;
+  /** Formato YYYY-MM (mesmo valor do relatório) para calcular o demonstrativo por quinzena. */
+  monthKey: string;
   workDays: WorkDay[];
   weekSummaries: WeekSummary[];
   totalMinutes: number;
@@ -205,11 +486,18 @@ interface MonthReportPdfProps {
 
 export function MonthReportPdf({
   monthLabel,
+  monthKey,
   workDays,
   weekSummaries,
   totalMinutes,
   closedAt,
 }: MonthReportPdfProps) {
+  const [fortnightFirst, fortnightSecond] = buildMonthFortnightBreakdowns(
+    workDays,
+    monthKey
+  );
+  const monthTotalFortnight = fortnightFirst.totalValue + fortnightSecond.totalValue;
+
   return (
     <Document>
       <Page size="A4" style={styles.page}>
@@ -227,8 +515,12 @@ export function MonthReportPdf({
             <Text style={styles.sectionTitle}>Resumo do mês</Text>
             <View style={styles.summaryCard}>
               <Text style={styles.summaryText}>
-                Total: {formatHours(totalMinutes)} — {workDays.length} dia(s) com
-                registro
+                Total trabalhado: {formatHours(totalMinutes)} —{" "}
+                {workDays.length} dia(s) com registro
+              </Text>
+              <Text style={[styles.summaryText, { marginTop: 8 }]}>
+                Horas extras (acima de 8h/dia):{" "}
+                {formatHours(totalExtraMinutes(workDays))}
               </Text>
             </View>
           </View>
@@ -237,11 +529,60 @@ export function MonthReportPdf({
             {weekSummaries.map((w, i) => (
               <View key={i} style={styles.row}>
                 <Text style={styles.weekLabel}>Semana {w.weekLabel}</Text>
-                <Text style={styles.weekTotal}>
-                  {formatHours(w.totalMinutes)}
-                </Text>
+                <View style={styles.weekColRight}>
+                  <Text style={styles.weekTotal}>
+                    {formatHours(w.totalMinutes)}
+                  </Text>
+                  <Text style={styles.weekExtraLine}>
+                    Extras: {formatHours(w.extraMinutes)}
+                  </Text>
+                </View>
               </View>
             ))}
+          </View>
+        </View>
+      </Page>
+      <Page size="A4" style={styles.page}>
+        <View style={styles.fortnightPageBody}>
+          <Text style={styles.fortnightMainTitle}>Quanto receber — por quinzena</Text>
+          <Text style={styles.fortnightIntro}>
+            Demonstrativo: referência de 8h por dia (nos dias com registro), desconto quando
+            trabalhou menos que 8h, e horas extras a {formatEarningsBRL(REAIS_POR_HORA_EXTRA)}
+            /h. O total da quinzena é: ref. normal − desconto + extras.
+          </Text>
+          <FortnightPdfCard b={fortnightFirst} title="Primeira quinzena" />
+          <FortnightPdfCard b={fortnightSecond} title="Segunda quinzena" />
+          <View style={styles.fortnightMonthTotalRow}>
+            <Text style={styles.fortnightMonthTotalLabel}>
+              Total do mês (1ª + 2ª quinzena)
+            </Text>
+            <Text style={styles.fortnightMonthTotalValue}>
+              {formatEarningsBRL(monthTotalFortnight)}
+            </Text>
+          </View>
+        </View>
+      </Page>
+      <Page size="A4" style={styles.page}>
+        <View style={styles.fortnightPageBody}>
+          <Text style={styles.fortnightMainTitle}>Quanto receber — por quinzena</Text>
+          <Text style={styles.fortnightIntro}>
+            Este demonstrativo mostra por que o valor se forma: referência de 8 horas por dia
+            (somente nos dias em que há registro de ponto), desconto quando a jornada ficou abaixo
+            de 8h nesses dias, e horas extras pagas a {formatEarningsBRL(REAIS_POR_HORA_EXTRA)} por
+            hora (acima de 8h no mesmo dia). Fórmula da quinzena: referência normal − desconto +
+            extras — o resultado coincide com horas normais efetivas ×{" "}
+            {formatEarningsBRL(REAIS_POR_HORA_NORMAL)}/h mais extras ×{" "}
+            {formatEarningsBRL(REAIS_POR_HORA_EXTRA)}/h.
+          </Text>
+          <FortnightPdfQuarter title="Primeira quinzena" b={fq1} />
+          <FortnightPdfQuarter title="Segunda quinzena" b={fq2} />
+          <View style={styles.fortnightMonthTotalRow}>
+            <Text style={styles.fortnightMonthTotalLabel}>
+              Total do mês (1ª + 2ª quinzena)
+            </Text>
+            <Text style={styles.fortnightMonthTotalValue}>
+              {formatEarningsBRL(monthTotalPay)}
+            </Text>
           </View>
         </View>
       </Page>
@@ -250,11 +591,19 @@ export function MonthReportPdf({
           <View style={styles.daysPageBody}>
             {chunk.map((wd) => {
               const dayRecords = getDayRecords(wd);
+              const extraMin = extraMinutesForDay(wd);
               return (
                 <View key={wd.id} style={styles.dayBlock}>
-                  <Text style={styles.dayTitle}>
-                    {formatDate(wd.date)} — {formatHours(totalMinutesForDay(wd))}
-                  </Text>
+                  <View style={styles.dayHeader}>
+                    <Text style={styles.dayTitleLine}>
+                      {formatDate(wd.date)} — {formatHours(totalMinutesForDay(wd))}
+                    </Text>
+                    {extraMin > 0 ? (
+                      <Text style={styles.dayExtra}>
+                        Horas extras: {formatHours(extraMin)}
+                      </Text>
+                    ) : null}
+                  </View>
                   {wd.punches.map((p, i) => (
                     <Text key={i} style={styles.punchLine}>
                       Entrada {formatTime(p.entry)}

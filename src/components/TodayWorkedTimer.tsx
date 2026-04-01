@@ -8,18 +8,16 @@ import {
   msToHHMMSS,
   type LocalInterval,
 } from "@/lib/workDayTotal";
-
-const REAIS_POR_HORA = 23.08;
+import {
+  JORNADA_PADRAO_MINUTOS_DIA,
+  earningsFromMinutes,
+  formatEarningsBRL,
+} from "@/hooks/useMonthReport";
 
 function msToReais(ms: number): string {
-  const horas = ms / (1000 * 60 * 60);
-  const reais = horas * REAIS_POR_HORA;
-  return reais.toLocaleString("pt-BR", {
-    style: "currency",
-    currency: "BRL",
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  });
+  const totalMinutes = ms / (1000 * 60);
+  const extraMinutes = Math.max(0, totalMinutes - JORNADA_PADRAO_MINUTOS_DIA);
+  return formatEarningsBRL(earningsFromMinutes(totalMinutes, extraMinutes));
 }
 
 interface TodayWorkedTimerProps {
@@ -74,7 +72,7 @@ export function TodayWorkedTimer({
         >
           {valorReais}
           <span className="text-slate-500 font-normal text-xs ml-1">
-            (R$ 23,08/h)
+            (23,08/h · 25/h extra)
           </span>
         </p>
       )}

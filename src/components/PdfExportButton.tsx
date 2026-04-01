@@ -51,6 +51,7 @@ export function PdfExportButton({
       const blob = await pdf(
         <MonthReportPdf
           monthLabel={monthLabel}
+          monthKey={month}
           workDays={data.workDays}
           weekSummaries={data.weekSummaries}
           totalMinutes={data.totalMinutes}
