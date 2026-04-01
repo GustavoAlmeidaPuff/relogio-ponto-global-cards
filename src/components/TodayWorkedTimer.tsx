@@ -9,15 +9,16 @@ import {
   type LocalInterval,
 } from "@/lib/workDayTotal";
 import {
-  expectedMinutesForDate,
   earningsFromMinutes,
+  extraMinutesFromWorkedAndDate,
   formatEarningsBRL,
+  REAIS_POR_HORA_EXTRA,
+  REAIS_POR_HORA_NORMAL,
 } from "@/hooks/useMonthReport";
 
 function msToReais(ms: number, today: string): string {
-  const totalMinutes = ms / (1000 * 60);
-  const expected = expectedMinutesForDate(today);
-  const extraMinutes = Math.max(0, totalMinutes - expected);
+  const totalMinutes = Math.round(ms / 60000);
+  const extraMinutes = extraMinutesFromWorkedAndDate(totalMinutes, today);
   return formatEarningsBRL(earningsFromMinutes(totalMinutes, extraMinutes));
 }
 
@@ -72,8 +73,14 @@ export function TodayWorkedTimer({
           }`}
         >
           {valorReais}
-          <span className="text-slate-500 font-normal text-xs ml-1">
-            (23,08/h · 25/h extra; domingo = tudo extra)
+          <span className="text-slate-500 font-normal text-xs mt-1 block max-w-[min(100%,22rem)] mx-auto leading-snug px-1">
+            {REAIS_POR_HORA_NORMAL.toLocaleString("pt-BR", {
+              minimumFractionDigits: 2,
+              maximumFractionDigits: 2,
+            })}
+            /h até 5h (seg–sex) ou 9h (sáb); depois{" "}
+            {REAIS_POR_HORA_EXTRA.toLocaleString("pt-BR")}/h. Domingo:{" "}
+            {REAIS_POR_HORA_EXTRA.toLocaleString("pt-BR")}/h o dia todo.
           </span>
         </p>
       )}

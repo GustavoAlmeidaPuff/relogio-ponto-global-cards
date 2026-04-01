@@ -29,8 +29,11 @@ export function effectiveWorkedMinutes(workDay: WorkDay): number {
 }
 
 /**
- * Jornada prevista por dia (extras e faltas): seg–sex 5h; sábado 9h; domingo 0 (folga —
- * qualquer tempo trabalhado conta como hora extra).
+ * Limite de minutos pagos à taxa normal (23,08/h) no dia.
+ * Acima disso, o remanescente vai à taxa extra (25/h).
+ * - Seg–sex: 5h normais, depois extra.
+ * - Sábado: 9h normais, depois extra.
+ * - Domingo: 0h normal → todo o tempo trabalhado é extra (25/h).
  */
 export function expectedMinutesForDate(dateStr: string): number {
   const d = new Date(dateStr + "T12:00:00");
@@ -38,6 +41,15 @@ export function expectedMinutesForDate(dateStr: string): number {
   if (dow === 0) return 0;
   if (dow === 6) return 9 * 60;
   return 5 * 60;
+}
+
+/** Minutos acima do limite normal do dia (pagos a REAIS_POR_HORA_EXTRA). */
+export function extraMinutesFromWorkedAndDate(
+  workedMinutes: number,
+  dateStr: string
+): number {
+  const normalCap = expectedMinutesForDate(dateStr);
+  return Math.max(0, workedMinutes - normalCap);
 }
 
 /** Texto curto para UI (demonstrativos). */
@@ -80,9 +92,10 @@ export function formatEarningsBRL(value: number): string {
 
 /** Minutos acima da jornada prevista para aquele dia da semana. */
 export function extraMinutesForDay(workDay: WorkDay): number {
-  const worked = effectiveWorkedMinutes(workDay);
-  const expected = expectedMinutesForDate(workDay.date);
-  return Math.max(0, worked - expected);
+  return extraMinutesFromWorkedAndDate(
+    effectiveWorkedMinutes(workDay),
+    workDay.date
+  );
 }
 
 /** Minutos abaixo da jornada prevista quando houve trabalho registrado (“falta”). */
