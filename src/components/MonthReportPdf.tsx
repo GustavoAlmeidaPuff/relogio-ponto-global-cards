@@ -546,9 +546,13 @@ export function MonthReportPdf({
         <View style={styles.fortnightPageBody}>
           <Text style={styles.fortnightMainTitle}>Quanto receber — por quinzena</Text>
           <Text style={styles.fortnightIntro}>
-            Demonstrativo: referência de 8h por dia (nos dias com registro), desconto quando
-            trabalhou menos que 8h, e horas extras a {formatEarningsBRL(REAIS_POR_HORA_EXTRA)}
-            /h. O total da quinzena é: ref. normal − desconto + extras.
+            Por que esse valor: em cada quinzena usamos referência de 8h por dia apenas nos dias
+            com registro de ponto; quando a jornada fica abaixo de 8h, mostramos o desconto (valor
+            não pago em relação a completar 8h nesses dias); as horas acima de 8h no mesmo dia
+            entram como extras a {formatEarningsBRL(REAIS_POR_HORA_EXTRA)}/h. Total da quinzena =
+            referência normal − desconto + extras — confira na linha “Conferência” abaixo (equivale
+            a horas normais efetivas × {formatEarningsBRL(REAIS_POR_HORA_NORMAL)}/h + extras ×{" "}
+            {formatEarningsBRL(REAIS_POR_HORA_EXTRA)}/h).
           </Text>
           <FortnightPdfCard b={fortnightFirst} title="Primeira quinzena" />
           <FortnightPdfCard b={fortnightSecond} title="Segunda quinzena" />
@@ -558,30 +562,6 @@ export function MonthReportPdf({
             </Text>
             <Text style={styles.fortnightMonthTotalValue}>
               {formatEarningsBRL(monthTotalFortnight)}
-            </Text>
-          </View>
-        </View>
-      </Page>
-      <Page size="A4" style={styles.page}>
-        <View style={styles.fortnightPageBody}>
-          <Text style={styles.fortnightMainTitle}>Quanto receber — por quinzena</Text>
-          <Text style={styles.fortnightIntro}>
-            Este demonstrativo mostra por que o valor se forma: referência de 8 horas por dia
-            (somente nos dias em que há registro de ponto), desconto quando a jornada ficou abaixo
-            de 8h nesses dias, e horas extras pagas a {formatEarningsBRL(REAIS_POR_HORA_EXTRA)} por
-            hora (acima de 8h no mesmo dia). Fórmula da quinzena: referência normal − desconto +
-            extras — o resultado coincide com horas normais efetivas ×{" "}
-            {formatEarningsBRL(REAIS_POR_HORA_NORMAL)}/h mais extras ×{" "}
-            {formatEarningsBRL(REAIS_POR_HORA_EXTRA)}/h.
-          </Text>
-          <FortnightPdfQuarter title="Primeira quinzena" b={fq1} />
-          <FortnightPdfQuarter title="Segunda quinzena" b={fq2} />
-          <View style={styles.fortnightMonthTotalRow}>
-            <Text style={styles.fortnightMonthTotalLabel}>
-              Total do mês (1ª + 2ª quinzena)
-            </Text>
-            <Text style={styles.fortnightMonthTotalValue}>
-              {formatEarningsBRL(monthTotalPay)}
             </Text>
           </View>
         </View>
