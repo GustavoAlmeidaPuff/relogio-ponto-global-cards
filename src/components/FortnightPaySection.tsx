@@ -36,8 +36,9 @@ function FortnightCard({ b, title }: { b: FortnightPayBreakdown; title: string }
               Referência de jornada normal
             </p>
             <p className="text-slate-600 text-xs leading-relaxed mb-1">
-              {JORNADA_REFERENCIA_RESUMO} Soma da jornada prevista nos dias com tempo
-              registrado:
+              {JORNADA_REFERENCIA_RESUMO} Soma da jornada prevista por calendário
+              (segunda a sábado) na quinzena; dia útil sem ponto conta como falta
+              integral na linha abaixo.
             </p>
             <p className="text-slate-700 leading-relaxed">
               {formatHours(b.referenceNormalMinutes)} × {formatEarningsBRL(REAIS_POR_HORA_NORMAL)}
@@ -57,8 +58,8 @@ function FortnightCard({ b, title }: { b: FortnightPayBreakdown; title: string }
                 Desconto — abaixo da jornada prevista
               </p>
               <p className="text-amber-950/90 leading-relaxed">
-                Nos dias em que trabalhou menos que a jornada daquele dia (5h seg–sex,
-                9h no sábado; domingo sem jornada prevista), faltaram{" "}
+                Falta integral (sem registro) ou parcial (5h seg–sex, 9h sábado;
+                domingo sem jornada prevista): no total faltaram{" "}
                 <span className="font-medium tabular-nums">
                   {formatHours(b.missingMinutes)}
                 </span>{" "}
@@ -71,7 +72,7 @@ function FortnightCard({ b, title }: { b: FortnightPayBreakdown; title: string }
             </div>
           ) : (
             <div className="rounded-xl border border-dashed border-slate-200 px-3 py-2 text-xs text-slate-500">
-              Sem desconto: em todos os dias com ponto o tempo trabalhado atingiu ou
+              Sem desconto: em todos os dias úteis considerados o tempo atingiu ou
               passou da jornada prevista ({JORNADA_REFERENCIA_RESUMO}).
             </div>
           )}
@@ -148,8 +149,8 @@ export function FortnightPaySection({
           Quanto receber — por quinzena
         </h2>
         <p className="text-slate-600 text-sm mt-1 max-w-3xl">
-          Demonstrativo: {JORNADA_REFERENCIA_RESUMO} Nos dias com registro, desconto
-          quando faltou tempo em relação à jornada daquele dia, e horas extras a{" "}
+          Demonstrativo: {JORNADA_REFERENCIA_RESUMO} Referência por calendário
+          (quinzena); desconto por dia sem ponto ou abaixo da jornada; horas extras a{" "}
           {formatEarningsBRL(REAIS_POR_HORA_EXTRA)}/h. O total da quinzena é:{" "}
           <span className="font-medium text-slate-800">
             ref. normal − desconto + extras

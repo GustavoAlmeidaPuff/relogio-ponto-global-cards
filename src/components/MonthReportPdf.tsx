@@ -406,8 +406,8 @@ function FortnightPdfCard({
       <View style={styles.fortnightBlock}>
         <Text style={styles.fortnightBlockLabel}>Referência de jornada normal</Text>
         <Text style={[styles.fortnightBody, { fontSize: 8, color: colors.textMuted }]}>
-          {JORNADA_REFERENCIA_RESUMO} Soma da jornada prevista nos dias com tempo
-          registrado.
+          {JORNADA_REFERENCIA_RESUMO} Soma da jornada prevista por calendário (segunda a
+          sábado) na quinzena; dia útil sem ponto conta como falta integral no desconto.
         </Text>
         <Text style={[styles.fortnightBody, { marginTop: 4 }]}>
           {formatHours(b.referenceNormalMinutes)} × {formatEarningsBRL(REAIS_POR_HORA_NORMAL)}
@@ -425,9 +425,9 @@ function FortnightPdfCard({
         <View style={styles.fortnightDiscountBlock}>
           <Text style={styles.fortnightDiscountLabel}>Desconto — abaixo da jornada prevista</Text>
           <Text style={styles.fortnightDiscountText}>
-            Nos dias em que trabalhou menos que a jornada daquele dia (5h seg–sex, 9h no
-            sábado; domingo sem jornada prevista), faltaram{" "}
-            {formatHours(b.missingMinutes)} para completar a referência.
+            Falta integral (sem registro) ou parcial (5h seg–sex, 9h sábado; domingo sem
+            jornada prevista): faltaram {formatHours(b.missingMinutes)} para completar a
+            referência.
           </Text>
           <Text style={[styles.fortnightDiscountText, { marginTop: 4 }]}>
             − ({b.missingMinutes} min ÷ 60) × {formatEarningsBRL(REAIS_POR_HORA_NORMAL)}
@@ -437,8 +437,8 @@ function FortnightPdfCard({
       ) : (
         <View style={styles.dashedNote}>
           <Text style={styles.dashedNoteText}>
-            Sem desconto: em todos os dias com ponto o tempo atingiu ou passou da jornada
-            prevista ({JORNADA_REFERENCIA_RESUMO}).
+            Sem desconto: em todos os dias úteis considerados o tempo atingiu ou passou da
+            jornada prevista ({JORNADA_REFERENCIA_RESUMO}).
           </Text>
         </View>
       )}
@@ -557,8 +557,8 @@ export function MonthReportPdf({
         <View style={styles.fortnightPageBody}>
           <Text style={styles.fortnightMainTitle}>Quanto receber — por quinzena</Text>
           <Text style={styles.fortnightIntro}>
-            {JORNADA_REFERENCIA_RESUMO} Em cada quinzena somamos só a jornada prevista dos dias em
-            que há tempo registrado; abaixo disso há desconto proporcional; acima da jornada do dia
+            {JORNADA_REFERENCIA_RESUMO} Em cada quinzena a referência segue o calendário (segunda a
+            sábado); dia sem ponto conta como falta integral no desconto; acima da jornada do dia
             entram como extras a {formatEarningsBRL(REAIS_POR_HORA_EXTRA)}/h. Total da quinzena =
             referência normal − desconto + extras — confira na linha “Conferência” (horas normais
             efetivas × {formatEarningsBRL(REAIS_POR_HORA_NORMAL)}/h + extras ×{" "}
