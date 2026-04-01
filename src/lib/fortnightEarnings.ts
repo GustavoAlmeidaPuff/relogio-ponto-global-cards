@@ -32,12 +32,8 @@ export interface FortnightPayBreakdown {
   /** Igual a earningsFromMinutes(totalMin, extraMin) na quinzena. */
   totalValue: number;
   totalMinutes: number;
-  /**
-   * Minutos pagos à taxa normal a partir do ponto (total trabalhado − parte classificada como extra).
-   * É isso que multiplica R$ 23,08 na conta principal — não as horas da referência de calendário.
-   */
-  clockNormalMinutes: number;
-  clockNormalValue: number;
+  /** referenceNormalValue + extraValue (antes do desconto por falta). */
+  subtotalGross: number;
 }
 
 function lastDayOfMonth(year: number, monthIndex0: number): number {
@@ -149,10 +145,11 @@ export function buildFortnightBreakdown(
     (referenceNormalMinutes / 60) * REAIS_POR_HORA_NORMAL;
   const discountValue = (missingMinutes / 60) * REAIS_POR_HORA_NORMAL;
   const extraValue = (extraMinutes / 60) * REAIS_POR_HORA_EXTRA;
-  const totalValue = earningsFromMinutes(totalMinutes, extraMinutes);
-  const clockNormalMinutes = totalMinutes - extraMinutes;
-  const clockNormalValue =
-    (clockNormalMinutes / 60) * REAIS_POR_HORA_NORMAL;
+  const subtotalGross = referenceNormalValue + extraValue;
+  const fromWorked = earningsFromMinutes(totalMinutes, extraMinutes);
+  const fromLedger = subtotalGross - discountValue;
+  const totalValue =
+    Math.abs(fromWorked - fromLedger) < 0.02 ? fromLedger : fromWorked;
 
   return {
     fortnight,
@@ -166,8 +163,7 @@ export function buildFortnightBreakdown(
     extraValue,
     totalValue,
     totalMinutes,
-    clockNormalMinutes,
-    clockNormalValue,
+    subtotalGross,
   };
 }
 

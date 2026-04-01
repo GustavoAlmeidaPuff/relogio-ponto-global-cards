@@ -31,114 +31,83 @@ function FortnightCard({ b, title }: { b: FortnightPayBreakdown; title: string }
         </p>
       ) : (
         <div className="space-y-3 text-sm">
-          <div className="rounded-xl bg-emerald-50/90 border border-emerald-200 px-3 py-3">
-            <p className="text-xs font-semibold text-emerald-900/80 uppercase tracking-wide mb-2">
-              Conta principal (pelo tempo batido)
+          <div className="rounded-xl bg-slate-50 border border-slate-100 px-3 py-2.5 space-y-1.5">
+            <p className="text-xs font-semibold text-slate-700 uppercase tracking-wide">
+              1. Ganhos — horas normais
             </p>
-            <p className="text-xs text-emerald-900/85 mb-2 leading-relaxed">
-              O que multiplica <strong>{formatEarningsBRL(REAIS_POR_HORA_NORMAL)}/h</strong> são{" "}
-              <strong>{formatHours(b.clockNormalMinutes)}</strong>, não as{" "}
-              {formatHours(b.referenceNormalMinutes)} da referência de calendário abaixo.
+            <p className="text-slate-600 text-xs leading-relaxed">
+              {JORNADA_REFERENCIA_RESUMO} Referência de calendário na quinzena (seg–sáb).
             </p>
-            <p className="text-emerald-950 tabular-nums">
-              {formatHours(b.clockNormalMinutes)} × {formatEarningsBRL(REAIS_POR_HORA_NORMAL)}/h
-              = <span className="font-semibold">{formatEarningsBRL(b.clockNormalValue)}</span>
-            </p>
-            {hasDiscount ? (
-              <p className="text-xs text-emerald-900/90 mt-2 leading-relaxed rounded-md bg-white/60 border border-emerald-100 px-2 py-1.5">
-                <span className="font-medium text-emerald-950">O desconto já está aplicado nesse valor:</span>{" "}
-                você não recebe pelas {formatHours(b.missingMinutes)} em falta em relação ao
-                calendário, então a base na taxa normal é menor do que 78h ×{" "}
-                {formatEarningsBRL(REAIS_POR_HORA_NORMAL)}/h. Em dinheiro, é o mesmo que{" "}
-                <span className="tabular-nums font-medium">
-                  {formatEarningsBRL(b.referenceNormalValue)} − {formatEarningsBRL(b.discountValue)} ={" "}
-                  {formatEarningsBRL(b.clockNormalValue)}
-                </span>
-                . <span className="text-emerald-800/95">Não subtraímos o desconto de novo no total</span>{" "}
-                (seria descontar a falta duas vezes).
-              </p>
-            ) : null}
-            {hasExtra ? (
-              <div className="mt-2 pt-2 border-t border-emerald-200/80 space-y-1.5">
-                <p className="text-xs text-emerald-900/85 leading-relaxed">
-                  Trecho do <strong>mesmo</strong> total ({formatHours(b.totalMinutes)}) acima da
-                  jornada do dia (5h / 9h sáb. / domingo):
-                </p>
-                <p className="text-emerald-950 tabular-nums">
-                  {formatHours(b.extraMinutes)} × {formatEarningsBRL(REAIS_POR_HORA_EXTRA)}/h ={" "}
-                  <span className="font-semibold">+{formatEarningsBRL(b.extraValue)}</span>
-                </p>
-              </div>
-            ) : null}
-            <p className="text-lg sm:text-xl font-bold text-emerald-950 tabular-nums mt-3 pt-2 border-t border-emerald-200/80">
-              Total da quinzena: {formatEarningsBRL(b.totalValue)}
-            </p>
-            <p className="text-xs text-emerald-800/90 mt-2 tabular-nums">
-              Tempo: {formatHours(b.clockNormalMinutes)}
-              {hasExtra ? ` + ${formatHours(b.extraMinutes)}` : ""} = {formatHours(b.totalMinutes)}
+            <p className="text-slate-800 tabular-nums">
+              {formatHours(b.referenceNormalMinutes)} × {formatEarningsBRL(REAIS_POR_HORA_NORMAL)}/h
+              = <span className="font-semibold">{formatEarningsBRL(b.referenceNormalValue)}</span>
             </p>
           </div>
-
-          <p className="text-xs text-slate-500 px-0.5">
-            Mesmo total em reais, por outro caminho (meta do calendário − falta + trechos na alíquota
-            extra):
-          </p>
 
           <div className="rounded-xl bg-slate-50 border border-slate-100 px-3 py-2.5 space-y-1.5">
-            <p className="text-xs font-semibold text-slate-600 uppercase tracking-wide">
-              Referência de calendário (não é o total batido)
+            <p className="text-xs font-semibold text-slate-700 uppercase tracking-wide">
+              2. Ganhos — horas extras
             </p>
-            <p className="text-slate-600 text-xs leading-relaxed mb-1">
-              {JORNADA_REFERENCIA_RESUMO} Soma da jornada prevista (seg–sáb) no período; serve para
-              medir falta, não para multiplicar suas horas de ponto por {formatEarningsBRL(REAIS_POR_HORA_NORMAL)}/h.
+            <p className="text-slate-600 text-xs leading-relaxed">
+              Acima de 5h (seg–sex), de 9h no sábado, ou qualquer hora no domingo.
             </p>
-            <p className="text-slate-700 leading-relaxed tabular-nums">
-              {formatHours(b.referenceNormalMinutes)} × {formatEarningsBRL(REAIS_POR_HORA_NORMAL)}/h
-              = {formatEarningsBRL(b.referenceNormalValue)}
-            </p>
+            {hasExtra ? (
+              <p className="text-slate-800 tabular-nums">
+                {formatHours(b.extraMinutes)} × {formatEarningsBRL(REAIS_POR_HORA_EXTRA)}/h ={" "}
+                <span className="font-semibold">{formatEarningsBRL(b.extraValue)}</span>
+              </p>
+            ) : (
+              <p className="text-slate-500 text-xs tabular-nums">R$ 0,00</p>
+            )}
           </div>
 
-          {hasDiscount ? (
-            <div className="rounded-xl bg-amber-50/90 border border-amber-100 px-3 py-2.5 space-y-1.5">
-              <p className="text-xs font-semibold text-amber-900/80 uppercase tracking-wide">
-                Desconto — abaixo da jornada prevista
-              </p>
-              <p className="text-amber-950/90 leading-relaxed">
-                Faltaram{" "}
-                <span className="font-medium tabular-nums">{formatHours(b.missingMinutes)}</span>{" "}
-                para completar a referência (falta integral ou parcial).
-              </p>
-              <p className="text-amber-950/90 tabular-nums">
-                − ({b.missingMinutes} min ÷ 60) × {formatEarningsBRL(REAIS_POR_HORA_NORMAL)}/h ={" "}
-                <span className="font-semibold">−{formatEarningsBRL(b.discountValue)}</span>
-              </p>
-              <p className="text-amber-950/85 text-xs border-t border-amber-200/60 pt-1.5 mt-1">
-                Após desconto, na taxa normal: equivale a{" "}
-                <strong className="tabular-nums">{formatHours(b.clockNormalMinutes)}</strong> ×{" "}
-                {formatEarningsBRL(REAIS_POR_HORA_NORMAL)}/h ={" "}
-                {formatEarningsBRL(b.clockNormalValue)}
-              </p>
-            </div>
-          ) : (
-            <div className="rounded-xl border border-dashed border-slate-200 px-3 py-2 text-xs text-slate-500">
-              Sem desconto ({JORNADA_REFERENCIA_RESUMO}).
-            </div>
-          )}
+          <div className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-slate-800 tabular-nums">
+            <span className="text-xs text-slate-500">Soma (normais + extras): </span>
+            <span className="font-medium">{formatEarningsBRL(b.subtotalGross)}</span>
+          </div>
 
-          {hasExtra ? (
-            <p className="text-xs text-slate-600 tabular-nums px-1">
-              + trechos na alíquota extra: {formatEarningsBRL(b.extraValue)} (
-              {formatHours(b.extraMinutes)} × {formatEarningsBRL(REAIS_POR_HORA_EXTRA)}/h)
+          <div
+            className={`rounded-xl px-3 py-2.5 space-y-1.5 ${
+              hasDiscount
+                ? "bg-amber-50/90 border border-amber-100"
+                : "border border-dashed border-slate-200"
+            }`}
+          >
+            <p className="text-xs font-semibold text-amber-900/80 uppercase tracking-wide">
+              3. Desconto — horas faltantes à jornada prevista
             </p>
-          ) : null}
+            {hasDiscount ? (
+              <>
+                <p className="text-amber-950/90 text-xs leading-relaxed">
+                  Faltaram {formatHours(b.missingMinutes)} em relação à referência (dia sem ponto ou
+                  abaixo de 5h / 9h sáb.).
+                </p>
+                <p className="text-amber-950 tabular-nums">
+                  − ({b.missingMinutes} min ÷ 60) × {formatEarningsBRL(REAIS_POR_HORA_NORMAL)}/h ={" "}
+                  <span className="font-semibold">−{formatEarningsBRL(b.discountValue)}</span>
+                </p>
+              </>
+            ) : (
+              <p className="text-slate-500 text-xs">Sem desconto neste período.</p>
+            )}
+          </div>
 
-          <p className="text-xs text-slate-600 tabular-nums px-1 pb-1">
-            {formatEarningsBRL(b.referenceNormalValue)}
-            {hasDiscount ? ` − ${formatEarningsBRL(b.discountValue)}` : ""}
-            {hasExtra ? ` + ${formatEarningsBRL(b.extraValue)}` : ""} ={" "}
-            <span className="font-medium text-slate-900">{formatEarningsBRL(b.totalValue)}</span>
-            {" "}(conferência do caminho calendário)
-          </p>
+          <div className="rounded-xl bg-emerald-50/90 border border-emerald-200 px-3 py-3">
+            <p className="text-xs font-semibold text-emerald-900/80 uppercase tracking-wide mb-2">
+              4. Total da quinzena
+            </p>
+            <p className="text-xs text-emerald-900/90 tabular-nums leading-relaxed break-words">
+              {formatEarningsBRL(b.referenceNormalValue)}
+              {hasExtra ? ` + ${formatEarningsBRL(b.extraValue)}` : ""}
+              {hasDiscount ? ` − ${formatEarningsBRL(b.discountValue)}` : ""} ={" "}
+            </p>
+            <p className="text-xl sm:text-2xl font-bold text-emerald-950 tabular-nums mt-1">
+              {formatEarningsBRL(b.totalValue)}
+            </p>
+            <p className="text-xs text-emerald-800/80 mt-2">
+              Tempo registrado no período: {formatHours(b.totalMinutes)}
+            </p>
+          </div>
         </div>
       )}
     </div>
@@ -169,10 +138,8 @@ export function FortnightPaySection({
           Quanto receber — por quinzena
         </h2>
         <p className="text-slate-600 text-sm mt-1 max-w-3xl">
-          Em cada card, a <span className="font-medium text-slate-800">conta principal</span> usa
-          primeiro o tempo batido: horas na taxa normal (não as horas da referência de calendário) +
-          trechos extra. Abaixo dela, o mesmo valor por referência de calendário − falta + extras.{" "}
-          {JORNADA_REFERENCIA_RESUMO}
+          {JORNADA_REFERENCIA_RESUMO} Em cada quinzena: ganhos na taxa normal (referência de
+          calendário), ganhos em horas extra, desconto por falta à jornada e total.
         </p>
       </div>
 
