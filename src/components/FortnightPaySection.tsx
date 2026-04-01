@@ -83,6 +83,13 @@ function FortnightCard({ b, title }: { b: FortnightPayBreakdown; title: string }
             </p>
             {hasExtra ? (
               <>
+                <p className="text-xs text-slate-700 leading-relaxed border-l-2 border-sky-400 pl-2.5 py-1 mb-1 bg-sky-50/60 rounded-r-md">
+                  <strong>Não são horas “a mais” além do que você somou.</strong> Esse tempo{" "}
+                  <strong>já está dentro</strong> do total da quinzena ({formatHours(b.totalMinutes)}
+                  ). Só classificamos qual parte passou da jornada do dia para pagar a hora a{" "}
+                  {formatEarningsBRL(REAIS_POR_HORA_EXTRA)}/h em vez de{" "}
+                  {formatEarningsBRL(REAIS_POR_HORA_NORMAL)}/h.
+                </p>
                 <p className="text-slate-700">
                   <span className="font-medium tabular-nums">
                     {formatHours(b.extraMinutes)}
@@ -111,22 +118,19 @@ function FortnightCard({ b, title }: { b: FortnightPayBreakdown; title: string }
               {formatEarningsBRL(b.totalValue)}
             </p>
             <p className="text-xs text-emerald-900/90 mt-3 rounded-lg bg-white/70 border border-emerald-100/80 px-2.5 py-2 leading-relaxed space-y-2">
-              <span>
-                <span className="font-medium text-emerald-950">Tempo total registrado: </span>
-                {formatHours(b.totalMinutes)} — soma dos dias no período.
+              <span className="block font-medium text-emerald-950">
+                Uma conta só de tempo: {formatHours(b.totalMinutes - b.extraMinutes)} +{" "}
+                {formatHours(b.extraMinutes)} = {formatHours(b.totalMinutes)} (igual à soma dos dias).
               </span>
               <span className="block">
-                O valor <strong>não</strong> é “todo o tempo × {formatEarningsBRL(REAIS_POR_HORA_NORMAL)}
-                /h + extras × {formatEarningsBRL(REAIS_POR_HORA_EXTRA)}/h”: isso pagaria as horas
-                extras <strong>duas vezes</strong> (dentro do total à taxa normal e de novo à taxa
-                extra). Por isso o sistema separa: minutos pagos à taxa normal = total − minutos
-                extra; cada minuto entra <strong>só numa</strong> alíquota.
+                Ou seja: <strong>não existem “suas 78h” + “mais 10h extra”.</strong> As ~10h são{" "}
+                <strong>pedaços dentro</strong> do seu total — dias em que você passou de 5h (ou 9h no
+                sábado) ou trabalhou no domingo. O pagamento usa duas alíquotas sobre esse mesmo
+                bolo, sem contar o mesmo minuto duas vezes.
               </span>
             </p>
             <p className="text-xs text-emerald-800/80 mt-2 tabular-nums">
-              Conferência: {formatHours(b.totalMinutes - b.extraMinutes)} +{" "}
-              {formatHours(b.extraMinutes)} = {formatHours(b.totalMinutes)} ·{" "}
-              {formatHours(b.totalMinutes - b.extraMinutes)} × {formatEarningsBRL(REAIS_POR_HORA_NORMAL)}
+              Valores: {formatHours(b.totalMinutes - b.extraMinutes)} × {formatEarningsBRL(REAIS_POR_HORA_NORMAL)}
               /h
               {hasExtra
                 ? ` + ${formatHours(b.extraMinutes)} × ${formatEarningsBRL(REAIS_POR_HORA_EXTRA)}/h`
