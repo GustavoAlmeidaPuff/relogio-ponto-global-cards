@@ -64,16 +64,46 @@ export const REAIS_POR_HORA_NORMAL = 23.08;
 /** Valor por hora extra (acima da jornada prevista no mesmo dia). */
 export const REAIS_POR_HORA_EXTRA = 25;
 
+const MS_PER_HOUR = 60 * 60 * 1000;
+
+function normalCapMsForDate(dateStr: string): number {
+  return expectedMinutesForDate(dateStr) * 60 * 1000;
+}
+
 /**
- * Taxa horária marginal com os mesmos minutos arredondados do timer (`Math.round(ms/60000)`):
- * abaixo do teto normal do dia → taxa normal; a partir do teto → taxa extra.
+ * Valor acumulado com precisão de tempo (ms), para o relógio ao vivo.
+ * Relatórios mensais seguem com minutos inteiros (`earningsFromMinutes`).
+ */
+export function earningsFromWorkedMs(workedMs: number, dateStr: string): number {
+  if (workedMs <= 0) return 0;
+  const capMs = normalCapMsForDate(dateStr);
+  if (workedMs <= capMs) {
+    return (workedMs / MS_PER_HOUR) * REAIS_POR_HORA_NORMAL;
+  }
+  const normalPart = (capMs / MS_PER_HOUR) * REAIS_POR_HORA_NORMAL;
+  const extraMs = workedMs - capMs;
+  return normalPart + (extraMs / MS_PER_HOUR) * REAIS_POR_HORA_EXTRA;
+}
+
+/** Taxa do próximo instante: já no ou acima do teto normal (em ms) → extra. */
+export function marginalHourlyRateForWorkedMs(
+  workedMs: number,
+  dateStr: string
+): number {
+  return workedMs >= normalCapMsForDate(dateStr)
+    ? REAIS_POR_HORA_EXTRA
+    : REAIS_POR_HORA_NORMAL;
+}
+
+/**
+ * Taxa marginal usando minutos inteiros (relatórios / arredondamento).
+ * No timer ao vivo prefira `marginalHourlyRateForWorkedMs`.
  */
 export function marginalHourlyRateForWorkedMinutes(
   workedMinutes: number,
   dateStr: string
 ): number {
-  const cap = expectedMinutesForDate(dateStr);
-  return workedMinutes < cap ? REAIS_POR_HORA_NORMAL : REAIS_POR_HORA_EXTRA;
+  return marginalHourlyRateForWorkedMs(workedMinutes * 60 * 1000, dateStr);
 }
 
 /**
@@ -99,6 +129,16 @@ export function formatEarningsBRL(value: number): string {
     currency: "BRL",
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
+  });
+}
+
+/** Formatação para relógio ao vivo (3ª decimal visível a cada ~1 s). */
+export function formatEarningsLiveBRL(value: number): string {
+  return value.toLocaleString("pt-BR", {
+    style: "currency",
+    currency: "BRL",
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 3,
   });
 }
 

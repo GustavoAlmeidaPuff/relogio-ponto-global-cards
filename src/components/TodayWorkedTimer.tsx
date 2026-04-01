@@ -9,19 +9,13 @@ import {
   type LocalInterval,
 } from "@/lib/workDayTotal";
 import {
-  earningsFromMinutes,
-  extraMinutesFromWorkedAndDate,
+  earningsFromWorkedMs,
   formatEarningsBRL,
-  marginalHourlyRateForWorkedMinutes,
+  formatEarningsLiveBRL,
+  marginalHourlyRateForWorkedMs,
   REAIS_POR_HORA_EXTRA,
   REAIS_POR_HORA_NORMAL,
 } from "@/hooks/useMonthReport";
-
-function msToReais(ms: number, today: string): string {
-  const totalMinutes = Math.round(ms / 60000);
-  const extraMinutes = extraMinutesFromWorkedAndDate(totalMinutes, today);
-  return formatEarningsBRL(earningsFromMinutes(totalMinutes, extraMinutes));
-}
 
 interface TodayWorkedTimerProps {
   punches: Punch[];
@@ -49,11 +43,13 @@ export function TodayWorkedTimer({
     openDetails,
     now
   );
-  const workedMinutesRounded = Math.round(totalMs / 60000);
-  const valorReais = useMemo(() => msToReais(totalMs, today), [totalMs, today]);
+  const valorReais = useMemo(
+    () => formatEarningsLiveBRL(earningsFromWorkedMs(totalMs, today)),
+    [totalMs, today]
+  );
   const taxaAgora = useMemo(
-    () => marginalHourlyRateForWorkedMinutes(workedMinutesRounded, today),
-    [workedMinutesRounded, today]
+    () => marginalHourlyRateForWorkedMs(totalMs, today),
+    [totalMs, today]
   );
   const taxaAgoraLabel =
     taxaAgora === REAIS_POR_HORA_EXTRA ? "hora extra" : "jornada normal";
