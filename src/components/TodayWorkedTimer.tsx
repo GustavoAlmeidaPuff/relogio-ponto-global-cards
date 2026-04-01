@@ -12,6 +12,7 @@ import {
   earningsFromMinutes,
   extraMinutesFromWorkedAndDate,
   formatEarningsBRL,
+  marginalHourlyRateForWorkedMinutes,
   REAIS_POR_HORA_EXTRA,
   REAIS_POR_HORA_NORMAL,
 } from "@/hooks/useMonthReport";
@@ -48,7 +49,14 @@ export function TodayWorkedTimer({
     openDetails,
     now
   );
+  const workedMinutesRounded = Math.round(totalMs / 60000);
   const valorReais = useMemo(() => msToReais(totalMs, today), [totalMs, today]);
+  const taxaAgora = useMemo(
+    () => marginalHourlyRateForWorkedMinutes(workedMinutesRounded, today),
+    [workedMinutesRounded, today]
+  );
+  const taxaAgoraLabel =
+    taxaAgora === REAIS_POR_HORA_EXTRA ? "hora extra" : "jornada normal";
 
   useEffect(() => {
     if (!openIsToday) return;
@@ -73,6 +81,13 @@ export function TodayWorkedTimer({
           }`}
         >
           {valorReais}
+          <span className="block text-sm sm:text-base font-semibold tabular-nums mt-1.5">
+            Agora: {formatEarningsBRL(taxaAgora)}/h
+            <span className="text-slate-500 font-normal text-xs sm:text-sm">
+              {" "}
+              ({taxaAgoraLabel})
+            </span>
+          </span>
           <span className="text-slate-500 font-normal text-xs mt-1 block max-w-[min(100%,22rem)] mx-auto leading-snug px-1">
             {REAIS_POR_HORA_NORMAL.toLocaleString("pt-BR", {
               minimumFractionDigits: 2,

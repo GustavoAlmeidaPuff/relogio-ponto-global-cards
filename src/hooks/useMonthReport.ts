@@ -65,6 +65,18 @@ export const REAIS_POR_HORA_NORMAL = 23.08;
 export const REAIS_POR_HORA_EXTRA = 25;
 
 /**
+ * Taxa horária marginal com os mesmos minutos arredondados do timer (`Math.round(ms/60000)`):
+ * abaixo do teto normal do dia → taxa normal; a partir do teto → taxa extra.
+ */
+export function marginalHourlyRateForWorkedMinutes(
+  workedMinutes: number,
+  dateStr: string
+): number {
+  const cap = expectedMinutesForDate(dateStr);
+  return workedMinutes < cap ? REAIS_POR_HORA_NORMAL : REAIS_POR_HORA_EXTRA;
+}
+
+/**
  * Valor estimado: parte “dentro da jornada do dia” a REAIS_POR_HORA_NORMAL e parte “acima” a REAIS_POR_HORA_EXTRA.
  * `extraMinutes` = soma dos minutos acima da jornada prevista por dia.
  * `regular = total - extra` separa alíquotas: cada minuto trabalhado entra em **uma** só (sem pagar o mesmo minuto duas vezes).
