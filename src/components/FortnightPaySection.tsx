@@ -44,6 +44,20 @@ function FortnightCard({ b, title }: { b: FortnightPayBreakdown; title: string }
               {formatHours(b.clockNormalMinutes)} × {formatEarningsBRL(REAIS_POR_HORA_NORMAL)}/h
               = <span className="font-semibold">{formatEarningsBRL(b.clockNormalValue)}</span>
             </p>
+            {hasDiscount ? (
+              <p className="text-xs text-emerald-900/90 mt-2 leading-relaxed rounded-md bg-white/60 border border-emerald-100 px-2 py-1.5">
+                <span className="font-medium text-emerald-950">O desconto já está aplicado nesse valor:</span>{" "}
+                você não recebe pelas {formatHours(b.missingMinutes)} em falta em relação ao
+                calendário, então a base na taxa normal é menor do que 78h ×{" "}
+                {formatEarningsBRL(REAIS_POR_HORA_NORMAL)}/h. Em dinheiro, é o mesmo que{" "}
+                <span className="tabular-nums font-medium">
+                  {formatEarningsBRL(b.referenceNormalValue)} − {formatEarningsBRL(b.discountValue)} ={" "}
+                  {formatEarningsBRL(b.clockNormalValue)}
+                </span>
+                . <span className="text-emerald-800/95">Não subtraímos o desconto de novo no total</span>{" "}
+                (seria descontar a falta duas vezes).
+              </p>
+            ) : null}
             {hasExtra ? (
               <div className="mt-2 pt-2 border-t border-emerald-200/80 space-y-1.5">
                 <p className="text-xs text-emerald-900/85 leading-relaxed">

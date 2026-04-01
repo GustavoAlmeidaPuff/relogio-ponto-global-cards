@@ -414,6 +414,13 @@ function FortnightPdfCard({
           {formatHours(b.clockNormalMinutes)} × {formatEarningsBRL(REAIS_POR_HORA_NORMAL)}/h ={" "}
           {formatEarningsBRL(b.clockNormalValue)}
         </Text>
+        {hasDiscount ? (
+          <Text style={[styles.fortnightCheckLine, { marginTop: 4 }]}>
+            Desconto já embutido: {formatEarningsBRL(b.referenceNormalValue)} −{" "}
+            {formatEarningsBRL(b.discountValue)} = {formatEarningsBRL(b.clockNormalValue)} (taxa
+            normal). Não subtrair de novo no total.
+          </Text>
+        ) : null}
         {hasExtra ? (
           <>
             <Text style={[styles.fortnightBody, { marginTop: 6, fontSize: 8, color: colors.textMuted }]}>
