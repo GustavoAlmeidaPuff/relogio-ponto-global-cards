@@ -168,12 +168,12 @@ export function FortnightPaySection({
         </h2>
         <p className="text-slate-600 text-sm mt-1 max-w-3xl">
           Demonstrativo: {JORNADA_REFERENCIA_RESUMO} Referência por calendário
-          (quinzena); desconto por dia sem ponto ou abaixo da jornada; horas extras a{" "}
-          {formatEarningsBRL(REAIS_POR_HORA_EXTRA)}/h. O total da quinzena é:{" "}
+          (quinzena); desconto por falta; trechos acima da jornada do dia pagos a{" "}
+          {formatEarningsBRL(REAIS_POR_HORA_EXTRA)}/h —{" "}
           <span className="font-medium text-slate-800">
-            ref. normal − desconto + extras
+            esses trechos já entram no tempo total que você somou
           </span>
-          .
+          , não são horas por cima dele. Total em reais: ref. − desconto + valor dos trechos extra.
         </p>
       </div>
 

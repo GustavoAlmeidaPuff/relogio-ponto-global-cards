@@ -449,6 +449,10 @@ function FortnightPdfCard({
         </Text>
         {hasExtra ? (
           <>
+            <Text style={[styles.fortnightBody, { fontSize: 8, marginBottom: 4 }]}>
+              Não são horas além do tempo total batido: já entram em{" "}
+              {formatHours(b.totalMinutes)}; só mudam a alíquota (acima da jornada do dia).
+            </Text>
             <Text style={styles.fortnightBody}>
               {formatHours(b.extraMinutes)} × {formatEarningsBRL(REAIS_POR_HORA_EXTRA)}/h
             </Text>
@@ -470,13 +474,12 @@ function FortnightPdfCard({
         </Text>
         <Text style={styles.fortnightTotalValue}>{formatEarningsBRL(b.totalValue)}</Text>
         <Text style={[styles.fortnightCheckLine, { marginTop: 6 }]}>
-          Tempo total: {formatHours(b.totalMinutes)}. O valor não é (total × normal) + (extras ×
-          extra) — isso duplicaria as extras. Cada minuto entra só numa alíquota:{" "}
-          {formatHours(b.totalMinutes - b.extraMinutes)} + {formatHours(b.extraMinutes)} ={" "}
-          {formatHours(b.totalMinutes)}.
+          Uma soma só de tempo: {formatHours(b.totalMinutes - b.extraMinutes)} +{" "}
+          {formatHours(b.extraMinutes)} = {formatHours(b.totalMinutes)} (não é “total + extra”
+          como horas a mais).
         </Text>
         <Text style={styles.fortnightCheckLine}>
-          Conferência: {formatHours(b.totalMinutes - b.extraMinutes)} ×{" "}
+          Valores: {formatHours(b.totalMinutes - b.extraMinutes)} ×{" "}
           {formatEarningsBRL(REAIS_POR_HORA_NORMAL)}/h
           {hasExtra
             ? ` + ${formatHours(b.extraMinutes)} × ${formatEarningsBRL(REAIS_POR_HORA_EXTRA)}/h`
