@@ -11,7 +11,6 @@ import {
 import {
   earningsFromWorkedMs,
   formatEarningsBRL,
-  formatEarningsLiveBRL,
   marginalHourlyRateForWorkedMs,
   REAIS_POR_HORA_EXTRA,
   REAIS_POR_HORA_NORMAL,
@@ -44,7 +43,7 @@ export function TodayWorkedTimer({
     now
   );
   const valorReais = useMemo(
-    () => formatEarningsLiveBRL(earningsFromWorkedMs(totalMs, today)),
+    () => formatEarningsBRL(earningsFromWorkedMs(totalMs, today)),
     [totalMs, today]
   );
   const taxaAgora = useMemo(

@@ -132,16 +132,6 @@ export function formatEarningsBRL(value: number): string {
   });
 }
 
-/** Formatação para relógio ao vivo (3ª decimal visível a cada ~1 s). */
-export function formatEarningsLiveBRL(value: number): string {
-  return value.toLocaleString("pt-BR", {
-    style: "currency",
-    currency: "BRL",
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 3,
-  });
-}
-
 /** Minutos acima da jornada prevista para aquele dia da semana. */
 export function extraMinutesForDay(workDay: WorkDay): number {
   return extraMinutesFromWorkedAndDate(
