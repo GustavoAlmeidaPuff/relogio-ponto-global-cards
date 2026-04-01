@@ -53,8 +53,10 @@ export const REAIS_POR_HORA_NORMAL = 23.08;
 export const REAIS_POR_HORA_EXTRA = 25;
 
 /**
- * Valor estimado: minutos normais a REAIS_POR_HORA_NORMAL e extras a REAIS_POR_HORA_EXTRA.
- * `extraMinutes` deve ser a soma dos minutos acima da jornada prevista por dia.
+ * Valor estimado: parte “dentro da jornada do dia” a REAIS_POR_HORA_NORMAL e parte “acima” a REAIS_POR_HORA_EXTRA.
+ * `extraMinutes` = soma dos minutos acima da jornada prevista por dia.
+ * `regular = total - extra` separa alíquotas: cada minuto trabalhado entra em **uma** só (sem pagar o mesmo minuto duas vezes).
+ * Errado seria (total × normal) + (extra × extra), pois incluiria os minutos extra também no total à taxa normal.
  */
 export function earningsFromMinutes(
   totalMinutes: number,
