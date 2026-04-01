@@ -73,7 +73,7 @@ export function TodayWorkedTimer({
         >
           {valorReais}
           <span className="text-slate-500 font-normal text-xs ml-1">
-            (23,08/h · 25/h extra; jornada 5h / sáb. 9h)
+            (23,08/h · 25/h extra; domingo = tudo extra)
           </span>
         </p>
       )}

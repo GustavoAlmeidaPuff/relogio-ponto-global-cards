@@ -319,7 +319,7 @@ export default function MesPage() {
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
                       <div className="rounded-lg bg-emerald-50/90 border border-emerald-100 px-3 py-2.5">
                         <p className="text-emerald-800/80 text-xs leading-snug">
-                          Valor (23,08/h · 25/h extra; jornada 5h / sáb. 9h)
+                          Valor (23,08/h · 25/h extra; 5h seg–sex · 9h sáb. · dom. extra)
                         </p>
                         <p className="font-semibold text-emerald-900 tabular-nums">
                           {minutesToReais(totalMinutes, totalExtraMin)}
@@ -420,7 +420,7 @@ export default function MesPage() {
                   </h2>
                   <p className="text-slate-600 text-sm mt-2">
                     Horas trabalhadas e valor por dia (23,08/h · 25/h extra; extras acima
-                    de 5h ou 9h no sábado).
+                    de 5h, 9h no sábado, ou qualquer hora no domingo).
                     Toque em um dia para ver entradas, saídas e anotações.
                   </p>
                 </div>

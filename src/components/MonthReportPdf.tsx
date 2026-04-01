@@ -425,8 +425,8 @@ function FortnightPdfCard({
         <View style={styles.fortnightDiscountBlock}>
           <Text style={styles.fortnightDiscountLabel}>Desconto — abaixo da jornada prevista</Text>
           <Text style={styles.fortnightDiscountText}>
-            Nos dias em que trabalhou menos que a jornada daquele dia (5h ou 9h no
-            sábado), faltaram{" "}
+            Nos dias em que trabalhou menos que a jornada daquele dia (5h seg–sex, 9h no
+            sábado; domingo sem jornada prevista), faltaram{" "}
             {formatHours(b.missingMinutes)} para completar a referência.
           </Text>
           <Text style={[styles.fortnightDiscountText, { marginTop: 4 }]}>
@@ -444,7 +444,9 @@ function FortnightPdfCard({
       )}
 
       <View style={styles.fortnightBlock}>
-        <Text style={styles.fortnightBlockLabel}>Horas extras (acima de 5h ou 9h no sábado)</Text>
+        <Text style={styles.fortnightBlockLabel}>
+          Horas extras (acima de 5h, de 9h no sábado, ou qualquer hora no domingo)
+        </Text>
         {hasExtra ? (
           <>
             <Text style={styles.fortnightBody}>

@@ -29,18 +29,20 @@ export function effectiveWorkedMinutes(workDay: WorkDay): number {
 }
 
 /**
- * Jornada prevista por dia (para extras e faltas): seg–sex e domingo 5h; sábado 9h.
+ * Jornada prevista por dia (extras e faltas): seg–sex 5h; sábado 9h; domingo 0 (folga —
+ * qualquer tempo trabalhado conta como hora extra).
  */
 export function expectedMinutesForDate(dateStr: string): number {
   const d = new Date(dateStr + "T12:00:00");
   const dow = d.getDay();
+  if (dow === 0) return 0;
   if (dow === 6) return 9 * 60;
   return 5 * 60;
 }
 
 /** Texto curto para UI (demonstrativos). */
 export const JORNADA_REFERENCIA_RESUMO =
-  "Seg–sex e domingo: 5h. Sábado: 9h.";
+  "Seg–sex: 5h. Sábado: 9h. Domingo: folga (trabalho = 100% extra).";
 
 /** @deprecated use expectedMinutesForDate — mantido para migração de imports. */
 export const JORNADA_PADRAO_MINUTOS_DIA = 8 * 60;

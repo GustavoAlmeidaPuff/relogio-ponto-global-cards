@@ -23,7 +23,7 @@ export interface FortnightPayBreakdown {
   /** Ex.: "1–15 abr." */
   labelRange: string;
   daysWithRecords: number;
-  /** Soma das jornadas previstas (5h/9h) só nos dias com tempo trabalhado efetivo. */
+  /** Soma das jornadas previstas (5h seg–sex, 9h sáb., 0 dom.) nos dias com tempo efetivo. */
   referenceNormalMinutes: number;
   referenceNormalValue: number;
   missingMinutes: number;

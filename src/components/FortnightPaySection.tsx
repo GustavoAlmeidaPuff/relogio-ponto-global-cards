@@ -57,8 +57,8 @@ function FortnightCard({ b, title }: { b: FortnightPayBreakdown; title: string }
                 Desconto — abaixo da jornada prevista
               </p>
               <p className="text-amber-950/90 leading-relaxed">
-                Nos dias em que trabalhou menos que a jornada daquele dia (5h ou 9h no
-                sábado), faltaram{" "}
+                Nos dias em que trabalhou menos que a jornada daquele dia (5h seg–sex,
+                9h no sábado; domingo sem jornada prevista), faltaram{" "}
                 <span className="font-medium tabular-nums">
                   {formatHours(b.missingMinutes)}
                 </span>{" "}
@@ -78,7 +78,7 @@ function FortnightCard({ b, title }: { b: FortnightPayBreakdown; title: string }
 
           <div className="rounded-xl bg-slate-50 border border-slate-100 px-3 py-2.5 space-y-1.5">
             <p className="text-xs font-semibold text-slate-600 uppercase tracking-wide">
-              Horas extras (acima de 5h ou de 9h no sábado)
+              Horas extras (acima de 5h, de 9h no sábado, ou qualquer hora no domingo)
             </p>
             {hasExtra ? (
               <>
