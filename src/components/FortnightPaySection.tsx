@@ -10,8 +10,9 @@ import {
 } from "@/hooks/useMonthReport";
 
 function FortnightCard({ b, title }: { b: FortnightPayBreakdown; title: string }) {
-  const hasDiscount = b.missingMinutes > 0;
-  const hasExtra = b.extraMinutes > 0;
+  const hasFalta = b.missingMinutes > 0;
+  const hasBrutas = b.grossExtraMinutes > 0;
+  const hasLiquidas = b.formattedExtraMinutes > 0;
 
   return (
     <div className="rounded-2xl border border-slate-200/90 bg-white p-4 sm:p-5 shadow-[0_8px_30px_rgb(15,23,42,0.06)]">
@@ -31,13 +32,28 @@ function FortnightCard({ b, title }: { b: FortnightPayBreakdown; title: string }
         </p>
       ) : (
         <div className="space-y-3 text-sm">
+          <div className="rounded-lg border border-slate-200 bg-slate-50/80 px-3 py-2 text-xs text-slate-600 space-y-1">
+            <p className="tabular-nums">
+              <span className="text-slate-500">Tempo total trabalhado: </span>
+              <span className="font-medium text-slate-800">{formatHours(b.totalMinutes)}</span>
+            </p>
+            <p className="tabular-nums">
+              <span className="text-slate-500">Referência calendário (seg–sáb): </span>
+              <span className="font-medium text-slate-800">{formatHours(b.referenceNormalMinutes)}</span>
+            </p>
+            <p className="tabular-nums">
+              <span className="text-slate-500">Horas esperadas (ref. − dia sem ponto): </span>
+              <span className="font-medium text-slate-800">{formatHours(b.expectedEffectiveMinutes)}</span>
+            </p>
+          </div>
+
           <div className="rounded-xl bg-slate-50 border border-slate-100 px-3 py-2.5 space-y-1.5">
             <p className="text-xs font-semibold text-slate-700 uppercase tracking-wide">
               1. Ganhos — horas normais
             </p>
             <p className="text-slate-600 text-xs leading-relaxed">
-              {JORNADA_REFERENCIA_RESUMO} Tempo total registrado na quinzena menos as horas
-              classificadas como extras: {formatHours(b.totalMinutes)} − {formatHours(b.extraMinutes)}.
+              {JORNADA_REFERENCIA_RESUMO} Base = tempo total − extras brutas (
+              {formatHours(b.totalMinutes)} − {formatHours(b.grossExtraMinutes)}).
             </p>
             <p className="text-slate-800 tabular-nums">
               {formatHours(b.clockNormalMinutes)} × {formatEarningsBRL(REAIS_POR_HORA_NORMAL)}/h
@@ -47,72 +63,73 @@ function FortnightCard({ b, title }: { b: FortnightPayBreakdown; title: string }
 
           <div className="rounded-xl bg-slate-50 border border-slate-100 px-3 py-2.5 space-y-1.5">
             <p className="text-xs font-semibold text-slate-700 uppercase tracking-wide">
-              2. Ganhos — horas extras
+              2. Horas extras brutas
             </p>
             <p className="text-slate-600 text-xs leading-relaxed">
-              Acima de 5h (seg–sex), de 9h no sábado, ou qualquer hora no domingo.
+              Trabalhado além das horas esperadas (item acima): total − esperadas.
             </p>
-            {hasExtra ? (
+            <p className="text-slate-800 tabular-nums font-medium">
+              {hasBrutas ? formatHours(b.grossExtraMinutes) : "0h 00min"}
+            </p>
+          </div>
+
+          <div
+            className={`rounded-xl px-3 py-2.5 space-y-1.5 ${
+              hasFalta
+                ? "bg-amber-50/90 border border-amber-100"
+                : "border border-dashed border-slate-200"
+            }`}
+          >
+            <p className="text-xs font-semibold text-amber-900/80 uppercase tracking-wide">
+              3. Faltas (abatem das extras brutas)
+            </p>
+            {hasFalta ? (
+              <>
+                <p className="text-amber-950/90 text-xs leading-relaxed">
+                  Falta à jornada prevista (dia sem ponto, saiu mais cedo, etc.):{" "}
+                  <span className="font-medium tabular-nums">{formatHours(b.missingMinutes)}</span>
+                  . Equivale a{" "}
+                  <span className="tabular-nums">{formatEarningsBRL(b.discountValue)}</span> na taxa
+                  normal, mas no cálculo <strong>reduz o saldo de horas extra</strong>, não a linha 1.
+                </p>
+                <p className="text-amber-950 tabular-nums text-sm pt-1 border-t border-amber-200/60">
+                  Saldo extras (brutas − faltas): {formatHours(b.grossExtraMinutes)} −{" "}
+                  {formatHours(b.missingMinutes)} ={" "}
+                  <span className="font-semibold">{formatHours(b.formattedExtraMinutes)}</span>
+                </p>
+              </>
+            ) : (
+              <p className="text-slate-500 text-xs">Nenhuma falta registrada na referência.</p>
+            )}
+          </div>
+
+          <div className="rounded-xl bg-slate-50 border border-slate-100 px-3 py-2.5 space-y-1.5">
+            <p className="text-xs font-semibold text-slate-700 uppercase tracking-wide">
+              4. Ganhos — horas extras (líquidas)
+            </p>
+            <p className="text-slate-600 text-xs leading-relaxed">
+              Saldo do passo 3 × {formatEarningsBRL(REAIS_POR_HORA_EXTRA)}/h.
+            </p>
+            {hasLiquidas ? (
               <p className="text-slate-800 tabular-nums">
-                {formatHours(b.extraMinutes)} × {formatEarningsBRL(REAIS_POR_HORA_EXTRA)}/h ={" "}
-                <span className="font-semibold">{formatEarningsBRL(b.extraValue)}</span>
+                {formatHours(b.formattedExtraMinutes)} × {formatEarningsBRL(REAIS_POR_HORA_EXTRA)}/h
+                = <span className="font-semibold">{formatEarningsBRL(b.formattedExtraValue)}</span>
               </p>
             ) : (
               <p className="text-slate-500 text-xs tabular-nums">R$ 0,00</p>
             )}
           </div>
 
-          <div className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-slate-800 tabular-nums">
-            <span className="text-xs text-slate-500">Soma (normais + extras): </span>
-            <span className="font-medium">{formatEarningsBRL(b.subtotalGross)}</span>
-          </div>
-
-          <div
-            className={`rounded-xl px-3 py-2.5 space-y-1.5 ${
-              hasDiscount
-                ? "bg-amber-50/90 border border-amber-100"
-                : "border border-dashed border-slate-200"
-            }`}
-          >
-            <p className="text-xs font-semibold text-amber-900/80 uppercase tracking-wide">
-              3. Desconto — horas faltantes à jornada prevista
-            </p>
-            {hasDiscount ? (
-              <>
-                <p className="text-amber-950/90 text-xs leading-relaxed">
-                  Referência de calendário na quinzena: {formatHours(b.referenceNormalMinutes)}. Em
-                  relação a ela, faltaram {formatHours(b.missingMinutes)} (dia sem ponto ou abaixo de
-                  5h / 9h sáb.) — equivalente a{" "}
-                  <span className="font-medium tabular-nums">
-                    −{formatEarningsBRL(b.discountValue)}
-                  </span>{" "}
-                  na taxa normal. Isso <strong>não é descontado de novo</strong> no total: a linha 1
-                  já usa só o tempo efetivo (total − extras).
-                </p>
-                <p className="text-amber-950 tabular-nums text-xs">
-                  Conferência: {formatHours(b.referenceNormalMinutes)} ×{" "}
-                  {formatEarningsBRL(REAIS_POR_HORA_NORMAL)}/h − {formatHours(b.missingMinutes)} na
-                  mesma taxa ≈ linha 1.
-                </p>
-              </>
-            ) : (
-              <p className="text-slate-500 text-xs">Sem falta em relação à referência de calendário.</p>
-            )}
-          </div>
-
           <div className="rounded-xl bg-emerald-50/90 border border-emerald-200 px-3 py-3">
             <p className="text-xs font-semibold text-emerald-900/80 uppercase tracking-wide mb-2">
-              4. Total da quinzena
+              5. Total da quinzena
             </p>
             <p className="text-xs text-emerald-900/90 tabular-nums leading-relaxed break-words">
               {formatEarningsBRL(b.clockNormalValue)}
-              {hasExtra ? ` + ${formatEarningsBRL(b.extraValue)}` : ""} ={" "}
+              {hasLiquidas ? ` + ${formatEarningsBRL(b.formattedExtraValue)}` : ""} =
             </p>
             <p className="text-xl sm:text-2xl font-bold text-emerald-950 tabular-nums mt-1">
               {formatEarningsBRL(b.totalValue)}
-            </p>
-            <p className="text-xs text-emerald-800/80 mt-2">
-              Tempo registrado no período: {formatHours(b.totalMinutes)}
             </p>
           </div>
         </div>
@@ -145,8 +162,8 @@ export function FortnightPaySection({
           Quanto receber — por quinzena
         </h2>
         <p className="text-slate-600 text-sm mt-1 max-w-3xl">
-          {JORNADA_REFERENCIA_RESUMO} Horas normais = tempo total registrado − horas extras; total =
-          linha 1 + linha 2. O bloco de falta compara com a referência de calendário.
+          {JORNADA_REFERENCIA_RESUMO} Extras brutas = trabalhado − horas esperadas (referência − dia
+          sem ponto). Faltas abatem das brutas; o valor extra usa só o saldo líquido.
         </p>
       </div>
 

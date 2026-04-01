@@ -1,9 +1,7 @@
 import type { WorkDay } from "@/types";
 import {
-  earningsFromMinutes,
   effectiveWorkedMinutes,
   expectedMinutesForDate,
-  extraMinutesForDay,
   REAIS_POR_HORA_EXTRA,
   REAIS_POR_HORA_NORMAL,
 } from "@/hooks/useMonthReport";
@@ -22,22 +20,32 @@ export interface FortnightPayBreakdown {
   /** Ex.: "1–15 abr." */
   labelRange: string;
   daysWithRecords: number;
-  /** Soma das jornadas previstas (5h seg–sex, 9h sáb.; dom. 0) nos dias úteis da quinzena no período considerado. */
+  /** Soma da jornada prevista (seg–sáb) no período considerado. */
   referenceNormalMinutes: number;
   referenceNormalValue: number;
+  /** Prevista dos dias úteis em que não houve ponto (falta integral). */
+  fullDayMissingMinutes: number;
+  /**
+   * Horas previstas efetivas: referência − falta em dia inteiro (ex.: 78h − sábado sem ponto).
+   * Usado no resumo; o valor em R$ da linha normal usa `clockNormalMinutes`.
+   */
+  expectedEffectiveMinutes: number;
+  /** Falta total (integral + parcial: saiu cedo etc.). Abate das extras brutas. */
   missingMinutes: number;
+  /** missingMinutes × taxa normal (conferência em R$). */
   discountValue: number;
-  extraMinutes: number;
-  extraValue: number;
-  /** Igual a earningsFromMinutes(totalMin, extraMin) na quinzena. */
-  totalValue: number;
   totalMinutes: number;
-  /** Minutos na faixa normal: total registrado − classificados como extra (por dia). */
+  /** max(0, total − expectedEffective). */
+  grossExtraMinutes: number;
+  /** max(0, brutas − missing). Pagas à taxa extra. */
+  formattedExtraMinutes: number;
+  formattedExtraValue: number;
+  /** min(total, esperadas) = total − extras brutas — base para ganhos na taxa normal. */
   clockNormalMinutes: number;
-  /** (clockNormalMinutes / 60) × taxa normal. */
   clockNormalValue: number;
-  /** clockNormalValue + extraValue (= totalValue). */
+  /** Normais + extras líquidas em R$. */
   subtotalGross: number;
+  totalValue: number;
 }
 
 function lastDayOfMonth(year: number, monthIndex0: number): number {
@@ -124,14 +132,11 @@ export function buildFortnightBreakdown(
     (acc, wd) => acc + effectiveWorkedMinutes(wd),
     0
   );
-  const extraMinutes = daysInFortnight.reduce(
-    (acc, wd) => acc + extraMinutesForDay(wd),
-    0
-  );
 
   const byDate = new Map(daysInFortnight.map((wd) => [wd.date, wd]));
   let referenceNormalMinutes = 0;
   let missingMinutes = 0;
+  let fullDayMissingMinutes = 0;
   for (const dateStr of datesInFortnight(validMes, fortnight)) {
     if (dateStr > asOf) continue;
     const exp = expectedMinutesForDate(dateStr);
@@ -141,19 +146,32 @@ export function buildFortnightBreakdown(
     const worked = wd ? effectiveWorkedMinutes(wd) : 0;
     if (worked === 0) {
       missingMinutes += exp;
+      fullDayMissingMinutes += exp;
     } else {
       missingMinutes += Math.max(0, exp - worked);
     }
   }
+
+  const expectedEffectiveMinutes = Math.max(
+    0,
+    referenceNormalMinutes - fullDayMissingMinutes
+  );
+  const grossExtraMinutes = Math.max(0, totalMinutes - expectedEffectiveMinutes);
+  const clockNormalMinutes = totalMinutes - grossExtraMinutes;
+  const formattedExtraMinutes = Math.max(
+    0,
+    grossExtraMinutes - missingMinutes
+  );
+
   const referenceNormalValue =
     (referenceNormalMinutes / 60) * REAIS_POR_HORA_NORMAL;
   const discountValue = (missingMinutes / 60) * REAIS_POR_HORA_NORMAL;
-  const extraValue = (extraMinutes / 60) * REAIS_POR_HORA_EXTRA;
-  const clockNormalMinutes = totalMinutes - extraMinutes;
   const clockNormalValue =
     (clockNormalMinutes / 60) * REAIS_POR_HORA_NORMAL;
-  const totalValue = earningsFromMinutes(totalMinutes, extraMinutes);
-  const subtotalGross = clockNormalValue + extraValue;
+  const formattedExtraValue =
+    (formattedExtraMinutes / 60) * REAIS_POR_HORA_EXTRA;
+  const totalValue = clockNormalValue + formattedExtraValue;
+  const subtotalGross = totalValue;
 
   return {
     fortnight,
@@ -161,15 +179,18 @@ export function buildFortnightBreakdown(
     daysWithRecords: n,
     referenceNormalMinutes,
     referenceNormalValue,
+    fullDayMissingMinutes,
+    expectedEffectiveMinutes,
     missingMinutes,
     discountValue,
-    extraMinutes,
-    extraValue,
-    totalValue,
     totalMinutes,
+    grossExtraMinutes,
+    formattedExtraMinutes,
+    formattedExtraValue,
     clockNormalMinutes,
     clockNormalValue,
     subtotalGross,
+    totalValue,
   };
 }
 
