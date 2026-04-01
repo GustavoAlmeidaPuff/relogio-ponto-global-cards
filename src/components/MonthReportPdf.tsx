@@ -566,12 +566,11 @@ export function MonthReportPdf({
         <View style={styles.fortnightPageBody}>
           <Text style={styles.fortnightMainTitle}>Quanto receber — por quinzena</Text>
           <Text style={styles.fortnightIntro}>
-            {JORNADA_REFERENCIA_RESUMO} Em cada quinzena a referência segue o calendário (segunda a
-            sábado); dia sem ponto conta como falta integral no desconto; acima da jornada do dia
-            entram como extras a {formatEarningsBRL(REAIS_POR_HORA_EXTRA)}/h. Total da quinzena =
-            referência normal − desconto + extras — confira na linha “Conferência” (horas normais
-            efetivas × {formatEarningsBRL(REAIS_POR_HORA_NORMAL)}/h + extras ×{" "}
-            {formatEarningsBRL(REAIS_POR_HORA_EXTRA)}/h).
+            {JORNADA_REFERENCIA_RESUMO} Referência por calendário (seg–sáb); desconto por falta;
+            trechos acima da jornada do dia a {formatEarningsBRL(REAIS_POR_HORA_EXTRA)}/h — já
+            incluídos no tempo total batido, não são horas “por cima”. Total em reais = referência −
+            desconto + valor desses trechos. Conferência: repartição do mesmo tempo total em duas
+            alíquotas.
           </Text>
           <FortnightPdfCard b={fortnightFirst} title="Primeira quinzena" />
           <FortnightPdfCard b={fortnightSecond} title="Segunda quinzena" />
