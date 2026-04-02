@@ -111,8 +111,10 @@ export function TodayWorkedTimer({
     () => marginalHourlyRateForWorkedMs(totalMs, today),
     [totalMs, today]
   );
-  const taxaAgoraLabel =
-    taxaAgora === REAIS_POR_HORA_EXTRA ? "hora extra" : "jornada normal";
+  const isExtraHour = taxaAgora === REAIS_POR_HORA_EXTRA;
+  const taxaAgoraLabel = isExtraHour ? "hora extra" : "jornada normal";
+  /** Ao vivo: azul = jornada normal; verde = hora extra (inclui domingo). */
+  const liveAccentClass = isExtraHour ? "text-emerald-700" : "text-blue-700";
 
   useEffect(() => {
     if (!openIsToday) return;
@@ -125,7 +127,7 @@ export function TodayWorkedTimer({
       <p className="text-sm text-slate-500 mb-1">Tempo trabalhado hoje</p>
       <p
         className={`text-2xl sm:text-3xl font-mono tabular-nums ${
-          openIsToday ? "text-emerald-700" : "text-slate-800"
+          openIsToday ? liveAccentClass : "text-slate-800"
         }`}
       >
         {msToHHMMSS(totalMs)}
@@ -134,7 +136,7 @@ export function TodayWorkedTimer({
         <>
           <p
             className={`text-sm mt-2 font-medium tabular-nums ${
-              openIsToday ? "text-emerald-700" : "text-slate-600"
+              openIsToday ? liveAccentClass : "text-slate-600"
             }`}
           >
             {valorReais}
