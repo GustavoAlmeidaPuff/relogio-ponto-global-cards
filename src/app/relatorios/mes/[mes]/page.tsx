@@ -31,6 +31,50 @@ function formatDayDate(dateStr: string): string {
   });
 }
 
+type DayEntry =
+  | { type: "worked"; workDay: WorkDay; date: string }
+  | { type: "holiday"; workDay: WorkDay; date: string }
+  | { type: "absent"; date: string };
+
+function buildAllDayEntries(workDays: WorkDay[], validMes: string): DayEntry[] {
+  const asOf = asOfDateForReportMonth(validMes);
+  const [y, m] = validMes.split("-").map(Number);
+  const lastDay = new Date(y, m, 0).getDate();
+
+  const byDate = new Map(workDays.map((wd) => [wd.date, wd]));
+  const entries: DayEntry[] = [];
+  const seenDates = new Set<string>();
+
+  for (let d = 1; d <= lastDay; d++) {
+    const dateStr = `${y}-${String(m).padStart(2, "0")}-${String(d).padStart(2, "0")}`;
+    if (dateStr > asOf) continue;
+    const dow = new Date(dateStr + "T12:00:00").getDay();
+    const isWorkingDay = dow !== 0; // não domingo
+    const wd = byDate.get(dateStr);
+    seenDates.add(dateStr);
+
+    if (wd) {
+      if (wd.holiday === true) {
+        entries.push({ type: "holiday", workDay: wd, date: dateStr });
+      } else {
+        entries.push({ type: "worked", workDay: wd, date: dateStr });
+      }
+    } else if (isWorkingDay) {
+      entries.push({ type: "absent", date: dateStr });
+    }
+  }
+
+  // Inclui workDays fora do asOf (ex: domingo trabalhado após asOf)
+  for (const wd of workDays) {
+    if (!seenDates.has(wd.date)) {
+      entries.push({ type: wd.holiday ? "holiday" : "worked", workDay: wd, date: wd.date });
+    }
+  }
+
+  entries.sort((a, b) => a.date.localeCompare(b.date));
+  return entries;
+}
+
 function minutesToReais(totalMinutes: number, extraMinutes: number): string {
   return formatEarningsBRL(
     earningsFromMinutes(totalMinutes, extraMinutes)
@@ -85,8 +129,13 @@ export default function MesPage() {
     [fortnightBreakdowns]
   );
   const daysWithWorkedTime = useMemo(
-    () => workDays.filter((wd) => effectiveWorkedMinutes(wd) > 0).length,
+    () => workDays.filter((wd) => effectiveWorkedMinutes(wd) > 0 || wd.holiday).length,
     [workDays]
+  );
+
+  const allDayEntries = useMemo(
+    () => buildAllDayEntries(workDays, validMes ?? "2000-01"),
+    [workDays, validMes]
   );
 
   const prepareExport = useCallback(async () => {
