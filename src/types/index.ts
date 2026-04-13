@@ -18,6 +18,8 @@ export interface WorkDay {
   totalWorkedMs?: number;
   /** Preenchido ao clicar em "Fechar dia"; sincronizado entre dispositivos. */
   closedAt?: Timestamp | null;
+  /** Dia marcado como feriado → conta como PTO (5h seg–sex, 9h sáb). */
+  holiday?: boolean;
   createdAt: Timestamp;
   updatedAt: Timestamp;
 }
@@ -30,6 +32,7 @@ export interface WorkDayData {
   records?: string[];
   totalWorkedMs?: number;
   closedAt?: Timestamp | null;
+  holiday?: boolean;
   createdAt: Timestamp;
   updatedAt: Timestamp;
 }
