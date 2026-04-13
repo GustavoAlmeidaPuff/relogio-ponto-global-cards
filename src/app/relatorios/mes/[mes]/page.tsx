@@ -54,6 +54,9 @@ function buildAllDayEntries(workDays: WorkDay[], validMes: string): DayEntry[] {
     seenDates.add(dateStr);
 
     if (wd) {
+      const hasTime = effectiveWorkedMinutes(wd) > 0 || wd.holiday === true;
+      // Domingo sem tempo real não precisa aparecer
+      if (!hasTime && !isWorkingDay) continue;
       if (wd.holiday === true) {
         entries.push({ type: "holiday", workDay: wd, date: dateStr });
       } else {
