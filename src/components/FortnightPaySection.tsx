@@ -37,6 +37,12 @@ function FortnightCard({ b, title }: { b: FortnightPayBreakdown; title: string }
               <span className="text-slate-500">Tempo total trabalhado: </span>
               <span className="font-medium text-slate-800">{formatHours(b.totalMinutes)}</span>
             </p>
+            {b.ptoMinutes > 0 && (
+              <p className="tabular-nums">
+                <span className="text-slate-500">Feriados PTO ({b.ptoCount} dia{b.ptoCount !== 1 ? "s" : ""}): </span>
+                <span className="font-medium text-blue-700">+{formatHours(b.ptoMinutes)}</span>
+              </p>
+            )}
             <p className="tabular-nums">
               <span className="text-slate-500">Referência calendário (seg–sáb): </span>
               <span className="font-medium text-slate-800">{formatHours(b.referenceNormalMinutes)}</span>
@@ -52,8 +58,8 @@ function FortnightCard({ b, title }: { b: FortnightPayBreakdown; title: string }
               1. Ganhos — horas normais
             </p>
             <p className="text-slate-600 text-xs leading-relaxed">
-              {JORNADA_REFERENCIA_RESUMO} Base = tempo total − extras brutas (
-              {formatHours(b.totalMinutes)} − {formatHours(b.grossExtraMinutes)}).
+              {JORNADA_REFERENCIA_RESUMO} Base = total efetivo − extras brutas (
+              {formatHours(b.effectiveTotalMinutes)} − {formatHours(b.grossExtraMinutes)}).
             </p>
             <p className="text-slate-800 tabular-nums">
               {formatHours(b.clockNormalMinutes)} × {formatEarningsBRL(REAIS_POR_HORA_NORMAL)}/h
