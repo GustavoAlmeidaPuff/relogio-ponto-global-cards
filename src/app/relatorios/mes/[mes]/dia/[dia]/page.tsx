@@ -409,10 +409,47 @@ export default function DiaPage() {
         </Link>
 
         <section className="mb-6">
-          <p className="text-slate-700">
-            Total do dia:{" "}
-            <strong>{formatHours(effectiveWorkedMinutes(workDay))}</strong>
-          </p>
+          {workDay.holiday === true ? (
+            <div className="rounded-xl border border-blue-200 bg-blue-50 px-4 py-3 flex flex-wrap items-center justify-between gap-3">
+              <div>
+                <span className="inline-block text-xs font-semibold uppercase tracking-wide text-blue-700 bg-blue-100 px-2 py-0.5 rounded-full mb-1">
+                  Feriado
+                </span>
+                <p className="text-slate-700 text-sm">
+                  PTO:{" "}
+                  <strong>{formatHours(expectedMinutesForDate(workDay.date))}</strong>
+                  {effectiveWorkedMinutes(workDay) > 0 && (
+                    <span className="text-slate-500">
+                      {" "}+ {formatHours(effectiveWorkedMinutes(workDay))} trabalhado
+                    </span>
+                  )}
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => handleToggleHoliday(false)}
+                disabled={holidayLoading}
+                className="text-xs text-blue-700 border border-blue-300 rounded-lg px-3 py-1.5 hover:bg-blue-100 disabled:opacity-60"
+              >
+                {holidayLoading ? "Salvando..." : "Remover feriado"}
+              </button>
+            </div>
+          ) : (
+            <div className="flex items-center justify-between flex-wrap gap-3">
+              <p className="text-slate-700">
+                Total do dia:{" "}
+                <strong>{formatHours(effectiveWorkedMinutes(workDay))}</strong>
+              </p>
+              <button
+                type="button"
+                onClick={() => handleToggleHoliday(true)}
+                disabled={holidayLoading}
+                className="text-xs text-slate-500 border border-slate-200 rounded-lg px-3 py-1.5 hover:bg-slate-50 disabled:opacity-60"
+              >
+                {holidayLoading ? "Salvando..." : "Marcar como feriado"}
+              </button>
+            </div>
+          )}
         </section>
 
         <section className="mb-6">
