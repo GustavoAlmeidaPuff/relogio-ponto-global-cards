@@ -475,24 +475,77 @@ export default function MesPage() {
                     Toque em um dia para ver entradas, saídas e anotações.
                   </p>
                 </div>
-                {workDays.length === 0 ? (
+                {allDayEntries.length === 0 ? (
                   <p className="text-slate-500 text-sm py-8 text-center">
                     Nenhum dia registrado neste mês.
                   </p>
                 ) : (
                   <ul className="space-y-2">
-                    {workDays.map((wd) => {
+                    {allDayEntries.map((entry) => {
+                      if (entry.type === "absent") {
+                        return (
+                          <li key={entry.date}>
+                            <Link
+                              href={`/relatorios/mes/${validMes}/dia/${entry.date}`}
+                              className="block rounded-xl border border-red-100 bg-red-50/50 p-3 sm:p-4 hover:border-red-200 hover:bg-red-50 transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-400"
+                            >
+                              <div className="flex justify-between items-start gap-2 flex-wrap">
+                                <span className="font-medium text-slate-800 capitalize text-sm sm:text-base">
+                                  {formatDayDate(entry.date)}
+                                </span>
+                                <span className="text-red-600 font-semibold text-xs px-2 py-0.5 bg-red-100 rounded-full shrink-0">
+                                  Falta
+                                </span>
+                              </div>
+                              <p className="text-red-700 text-xs mt-1.5">
+                                {formatHours(expectedMinutesForDate(entry.date))} previstas — marcar como feriado →
+                              </p>
+                            </Link>
+                          </li>
+                        );
+                      }
+                      if (entry.type === "holiday") {
+                        const wd = entry.workDay;
+                        const worked = effectiveWorkedMinutes(wd);
+                        const ptoMin = expectedMinutesForDate(entry.date);
+                        return (
+                          <li key={entry.date}>
+                            <Link
+                              href={`/relatorios/mes/${validMes}/dia/${entry.date}`}
+                              className="block rounded-xl border border-blue-100 bg-blue-50/50 p-3 sm:p-4 hover:border-blue-200 hover:bg-blue-50 transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500"
+                            >
+                              <div className="flex justify-between items-start gap-2 flex-wrap">
+                                <span className="font-medium text-slate-800 capitalize text-sm sm:text-base">
+                                  {formatDayDate(entry.date)}
+                                </span>
+                                <span className="text-blue-700 font-semibold text-xs px-2 py-0.5 bg-blue-100 rounded-full shrink-0">
+                                  Feriado
+                                </span>
+                              </div>
+                              <p className="text-blue-800 text-xs sm:text-sm font-medium mt-1.5">
+                                PTO: {formatHours(ptoMin)}
+                                {worked > 0 ? ` + ${formatHours(worked)} trabalhado` : ""}
+                              </p>
+                              <span className="text-blue-600 text-xs sm:text-sm font-medium mt-2 inline-block">
+                                Abrir dia →
+                              </span>
+                            </Link>
+                          </li>
+                        );
+                      }
+                      // worked
+                      const wd = entry.workDay;
                       const dayMin = effectiveWorkedMinutes(wd);
                       const dayExtra = extraMinutesForDay(wd);
                       return (
-                        <li key={wd.id}>
+                        <li key={entry.date}>
                           <Link
-                            href={`/relatorios/mes/${validMes}/dia/${wd.date}`}
+                            href={`/relatorios/mes/${validMes}/dia/${entry.date}`}
                             className="block rounded-xl border border-slate-100 bg-slate-50/50 p-3 sm:p-4 hover:border-blue-200 hover:bg-blue-50/40 transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500"
                           >
                             <div className="flex justify-between items-start gap-2 flex-wrap">
                               <span className="font-medium text-slate-800 capitalize text-sm sm:text-base">
-                                {formatDayDate(wd.date)}
+                                {formatDayDate(entry.date)}
                               </span>
                               <span className="text-slate-700 font-semibold tabular-nums text-sm shrink-0">
                                 {formatHours(dayMin)}
