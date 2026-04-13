@@ -406,4 +406,45 @@ export async function upsertWorkDayPunches(
   }
 }
 
+/**
+ * Marca ou desmarca o dia como feriado (PTO).
+ * Se desmarcado e o documento ficou sem punches/tempo, o documento é removido.
+ */
+export async function setWorkDayHoliday(
+  userId: string,
+  date: string,
+  holiday: boolean
+): Promise<void> {
+  const id = workDayId(userId, date);
+  const ref = doc(getDb(), WORK_DAYS, id);
+  const existing = await getDoc(ref);
+
+  if (holiday) {
+    if (existing.exists()) {
+      await updateDoc(ref, { holiday: true, updatedAt: serverTimestamp() });
+    } else {
+      await setDoc(ref, {
+        userId,
+        date,
+        punches: [],
+        notes: "",
+        records: [],
+        holiday: true,
+        createdAt: serverTimestamp(),
+        updatedAt: serverTimestamp(),
+      });
+    }
+  } else {
+    if (!existing.exists()) return;
+    const data = existing.data();
+    const hasPunches = ((data.punches as unknown[]) || []).length > 0;
+    const hasMs = typeof data.totalWorkedMs === "number" && data.totalWorkedMs > 0;
+    if (!hasPunches && !hasMs) {
+      await deleteDoc(ref);
+    } else {
+      await updateDoc(ref, { holiday: false, updatedAt: serverTimestamp() });
+    }
+  }
+}
+
 export { workDayId, monthClosureId };
