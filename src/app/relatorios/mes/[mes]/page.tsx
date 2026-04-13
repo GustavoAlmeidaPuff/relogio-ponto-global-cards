@@ -14,12 +14,14 @@ import {
   totalExtraMinutes,
   earningsFromMinutes,
   formatEarningsBRL,
+  expectedMinutesForDate,
 } from "@/hooks/useMonthReport";
 import { getWorkDaysInMonth, getMonthClosure } from "@/lib/firestore";
 import { CloseMonthButton } from "@/components/CloseMonthButton";
 import { PdfExportButton } from "@/components/PdfExportButton";
 import { FortnightPaySection } from "@/components/FortnightPaySection";
-import { buildMonthFortnightBreakdowns } from "@/lib/fortnightEarnings";
+import { buildMonthFortnightBreakdowns, asOfDateForReportMonth } from "@/lib/fortnightEarnings";
+import type { WorkDay } from "@/types";
 
 function formatDayDate(dateStr: string): string {
   return new Date(dateStr + "T12:00:00").toLocaleDateString("pt-BR", {
