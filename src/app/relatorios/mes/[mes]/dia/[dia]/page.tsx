@@ -5,8 +5,8 @@ import { useEffect, useState, useCallback } from "react";
 import Link from "next/link";
 import { Timestamp } from "firebase/firestore";
 import { useAuth } from "@/hooks/useAuth";
-import { getWorkDay, upsertWorkDayPunches } from "@/lib/firestore";
-import { effectiveWorkedMinutes, formatHours } from "@/hooks/useMonthReport";
+import { getWorkDay, upsertWorkDayPunches, setWorkDayHoliday } from "@/lib/firestore";
+import { effectiveWorkedMinutes, formatHours, expectedMinutesForDate } from "@/hooks/useMonthReport";
 import type { WorkDay, Punch } from "@/types";
 import { PunchList } from "@/components/PunchList";
 
@@ -235,6 +235,7 @@ export default function DiaPage() {
   const [workDay, setWorkDay] = useState<WorkDay | null>(null);
   const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState(false);
+  const [holidayLoading, setHolidayLoading] = useState(false);
 
   const load = useCallback(async () => {
     if (!user?.uid || !validDia) {
@@ -272,6 +273,20 @@ export default function DiaPage() {
       await upsertWorkDayPunches(user.uid, validDia, punches);
       await load();
       setEditing(false);
+    },
+    [user?.uid, validDia, load]
+  );
+
+  const handleToggleHoliday = useCallback(
+    async (holiday: boolean) => {
+      if (!user?.uid || !validDia) return;
+      setHolidayLoading(true);
+      try {
+        await setWorkDayHoliday(user.uid, validDia, holiday);
+        await load();
+      } finally {
+        setHolidayLoading(false);
+      }
     },
     [user?.uid, validDia, load]
   );
