@@ -20,6 +20,10 @@ export interface FortnightPayBreakdown {
   /** Ex.: "1–15 abr." */
   labelRange: string;
   daysWithRecords: number;
+  /** Número de dias marcados como feriado (PTO) no período. */
+  ptoCount: number;
+  /** Minutos de PTO (feriados sem ponto) adicionados ao total efetivo. */
+  ptoMinutes: number;
   /** Soma da jornada prevista (seg–sáb) no período considerado. */
   referenceNormalMinutes: number;
   referenceNormalValue: number;
@@ -34,13 +38,16 @@ export interface FortnightPayBreakdown {
   missingMinutes: number;
   /** missingMinutes × taxa normal (conferência em R$). */
   discountValue: number;
+  /** Minutos realmente trabalhados (sem PTO). */
   totalMinutes: number;
-  /** max(0, total − expectedEffective). */
+  /** totalMinutes + ptoMinutes — base para cálculo de extras e normais. */
+  effectiveTotalMinutes: number;
+  /** max(0, effectiveTotal − expectedEffective). */
   grossExtraMinutes: number;
   /** max(0, brutas − missing). Pagas à taxa extra. */
   formattedExtraMinutes: number;
   formattedExtraValue: number;
-  /** min(total, esperadas) = total − extras brutas — base para ganhos na taxa normal. */
+  /** min(effectiveTotal, esperadas) = effectiveTotal − extras brutas — base para ganhos na taxa normal. */
   clockNormalMinutes: number;
   clockNormalValue: number;
   /** Normais + extras líquidas em R$. */
@@ -125,7 +132,7 @@ export function buildFortnightBreakdown(
     (wd) => fortnightFromDate(wd.date) === fortnight
   );
   const daysWithWorkedTime = daysInFortnight.filter(
-    (wd) => effectiveWorkedMinutes(wd) > 0
+    (wd) => effectiveWorkedMinutes(wd) > 0 || wd.holiday === true
   );
   const n = daysWithWorkedTime.length;
   const totalMinutes = daysInFortnight.reduce(
@@ -137,14 +144,22 @@ export function buildFortnightBreakdown(
   let referenceNormalMinutes = 0;
   let missingMinutes = 0;
   let fullDayMissingMinutes = 0;
+  let ptoMinutes = 0;
+  let ptoCount = 0;
   for (const dateStr of datesInFortnight(validMes, fortnight)) {
     if (dateStr > asOf) continue;
     const exp = expectedMinutesForDate(dateStr);
     if (exp === 0) continue;
     referenceNormalMinutes += exp;
     const wd = byDate.get(dateStr);
+    const isHoliday = wd?.holiday === true;
     const worked = wd ? effectiveWorkedMinutes(wd) : 0;
-    if (worked === 0) {
+    if (isHoliday) {
+      // Feriado: PTO cobre a diferença entre o que foi trabalhado e a jornada esperada
+      const ptoDiff = Math.max(0, exp - worked);
+      ptoMinutes += ptoDiff;
+      if (ptoDiff > 0) ptoCount += 1;
+    } else if (worked === 0) {
       missingMinutes += exp;
       fullDayMissingMinutes += exp;
     } else {
@@ -152,12 +167,13 @@ export function buildFortnightBreakdown(
     }
   }
 
+  const effectiveTotalMinutes = totalMinutes + ptoMinutes;
   const expectedEffectiveMinutes = Math.max(
     0,
     referenceNormalMinutes - fullDayMissingMinutes
   );
-  const grossExtraMinutes = Math.max(0, totalMinutes - expectedEffectiveMinutes);
-  const clockNormalMinutes = totalMinutes - grossExtraMinutes;
+  const grossExtraMinutes = Math.max(0, effectiveTotalMinutes - expectedEffectiveMinutes);
+  const clockNormalMinutes = effectiveTotalMinutes - grossExtraMinutes;
   const formattedExtraMinutes = Math.max(
     0,
     grossExtraMinutes - missingMinutes
