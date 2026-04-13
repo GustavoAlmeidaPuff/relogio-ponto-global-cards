@@ -362,13 +362,23 @@ export default function DiaPage() {
               <p className="text-slate-600 mb-4">
                 Nenhum registro encontrado para este dia.
               </p>
-              <button
-                type="button"
-                onClick={() => setEditing(true)}
-                className="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700"
-              >
-                Criar este dia
-              </button>
+              <div className="flex flex-wrap gap-3">
+                <button
+                  type="button"
+                  onClick={() => setEditing(true)}
+                  className="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700"
+                >
+                  Criar este dia
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleToggleHoliday(true)}
+                  disabled={holidayLoading}
+                  className="px-4 py-2 bg-white border border-blue-300 text-blue-700 rounded-lg text-sm font-medium hover:bg-blue-50 disabled:opacity-60"
+                >
+                  {holidayLoading ? "Salvando..." : "Marcar como feriado"}
+                </button>
+              </div>
             </>
           )}
         </main>
