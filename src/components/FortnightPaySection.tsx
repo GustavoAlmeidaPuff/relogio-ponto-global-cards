@@ -10,8 +10,6 @@ import {
 } from "@/hooks/useMonthReport";
 
 function FortnightCard({ b, title }: { b: FortnightPayBreakdown; title: string }) {
-  const hasFalta = b.missingMinutes > 0;
-  const hasBrutas = b.grossExtraMinutes > 0;
   const hasLiquidas = b.formattedExtraMinutes > 0;
 
   return (
@@ -69,52 +67,11 @@ function FortnightCard({ b, title }: { b: FortnightPayBreakdown; title: string }
 
           <div className="rounded-xl bg-slate-50 border border-slate-100 px-3 py-2.5 space-y-1.5">
             <p className="text-xs font-semibold text-slate-700 uppercase tracking-wide">
-              2. Horas extras brutas
+              2. Ganhos — horas extras (líquidas)
             </p>
             <p className="text-slate-600 text-xs leading-relaxed">
-              Trabalhado além das horas esperadas (item acima): total − esperadas.
-            </p>
-            <p className="text-slate-800 tabular-nums font-medium">
-              {hasBrutas ? formatHours(b.grossExtraMinutes) : "0h 00min"}
-            </p>
-          </div>
-
-          <div
-            className={`rounded-xl px-3 py-2.5 space-y-1.5 ${
-              hasFalta
-                ? "bg-amber-50/90 border border-amber-100"
-                : "border border-dashed border-slate-200"
-            }`}
-          >
-            <p className="text-xs font-semibold text-amber-900/80 uppercase tracking-wide">
-              3. Faltas (abatem das extras brutas)
-            </p>
-            {hasFalta ? (
-              <>
-                <p className="text-amber-950/90 text-xs leading-relaxed">
-                  Falta à jornada prevista (dia sem ponto, saiu mais cedo, etc.):{" "}
-                  <span className="font-medium tabular-nums">{formatHours(b.missingMinutes)}</span>
-                  . Equivale a{" "}
-                  <span className="tabular-nums">{formatEarningsBRL(b.discountValue)}</span> na taxa
-                  normal, mas no cálculo <strong>reduz o saldo de horas extra</strong>, não a linha 1.
-                </p>
-                <p className="text-amber-950 tabular-nums text-sm pt-1 border-t border-amber-200/60">
-                  Saldo extras (brutas − faltas): {formatHours(b.grossExtraMinutes)} −{" "}
-                  {formatHours(b.missingMinutes)} ={" "}
-                  <span className="font-semibold">{formatHours(b.formattedExtraMinutes)}</span>
-                </p>
-              </>
-            ) : (
-              <p className="text-slate-500 text-xs">Nenhuma falta registrada na referência.</p>
-            )}
-          </div>
-
-          <div className="rounded-xl bg-slate-50 border border-slate-100 px-3 py-2.5 space-y-1.5">
-            <p className="text-xs font-semibold text-slate-700 uppercase tracking-wide">
-              4. Ganhos — horas extras (líquidas)
-            </p>
-            <p className="text-slate-600 text-xs leading-relaxed">
-              Saldo do passo 3 × {formatEarningsBRL(REAIS_POR_HORA_EXTRA)}/h.
+              Extras brutas − faltas do período (detalhe em &quot;Visão do mês&quot;) ×{" "}
+              {formatEarningsBRL(REAIS_POR_HORA_EXTRA)}/h.
             </p>
             {hasLiquidas ? (
               <p className="text-slate-800 tabular-nums">
@@ -128,7 +85,7 @@ function FortnightCard({ b, title }: { b: FortnightPayBreakdown; title: string }
 
           <div className="rounded-xl bg-emerald-50/90 border border-emerald-200 px-3 py-3">
             <p className="text-xs font-semibold text-emerald-900/80 uppercase tracking-wide mb-2">
-              5. Total da quinzena
+              3. Total da quinzena
             </p>
             <p className="text-xs text-emerald-900/90 tabular-nums leading-relaxed break-words">
               {formatEarningsBRL(b.clockNormalValue)}
@@ -168,8 +125,8 @@ export function FortnightPaySection({
           Quanto receber — por quinzena
         </h2>
         <p className="text-slate-600 text-sm mt-1 max-w-3xl">
-          {JORNADA_REFERENCIA_RESUMO} Extras brutas = trabalhado − horas esperadas (referência − dia
-          sem ponto). Faltas abatem das brutas; o valor extra usa só o saldo líquido.
+          {JORNADA_REFERENCIA_RESUMO} Totais de extras brutas e horas faltantes estão na seção
+          &quot;Visão do mês&quot;; abaixo segue o valor por quinzena já com saldo líquido de extras.
         </p>
       </div>
 

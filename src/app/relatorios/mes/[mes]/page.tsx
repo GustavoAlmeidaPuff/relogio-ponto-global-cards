@@ -116,21 +116,29 @@ export default function MesPage() {
     loading,
     refresh,
   } = useMonthReport(user?.uid, validMes ?? "2000-01");
-  const totalExtraMin = useMemo(
-    () => totalExtraMinutes(workDays),
-    [workDays]
-  );
   const [dashTab, setDashTab] = useState<DashTab>("mes");
 
   const fortnightBreakdowns = useMemo(
     () => buildMonthFortnightBreakdowns(workDays, validMes ?? "2000-01"),
     [workDays, validMes]
   );
+  const totalExtraMin = useMemo(
+    () => totalExtraMinutes(workDays),
+    [workDays]
+  );
   const monthTotalPay = useMemo(
     () =>
       fortnightBreakdowns[0].totalValue + fortnightBreakdowns[1].totalValue,
     [fortnightBreakdowns]
   );
+  /** Mesma base da quinzena: extras brutas e faltas só entram aqui na visão do mês (soma das quinzenas). */
+  const monthExtrasEFaltas = useMemo(() => {
+    const [a, b] = fortnightBreakdowns;
+    return {
+      grossExtraMinutes: a.grossExtraMinutes + b.grossExtraMinutes,
+      missingMinutes: a.missingMinutes + b.missingMinutes,
+    };
+  }, [fortnightBreakdowns]);
   const daysWithWorkedTime = useMemo(
     () => workDays.filter((wd) => effectiveWorkedMinutes(wd) > 0 || wd.holiday).length,
     [workDays]
@@ -369,6 +377,32 @@ export default function MesPage() {
                       <p className="text-3xl sm:text-4xl font-bold tabular-nums text-slate-900 tracking-tight">
                         {formatHours(totalMinutes)}
                       </p>
+                    </div>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
+                      <div className="rounded-lg bg-orange-50/90 border border-orange-100 px-3 py-2.5">
+                        <p className="text-orange-900/80 text-xs leading-snug">
+                          Horas extras (brutas)
+                        </p>
+                        <p className="font-semibold text-orange-950 tabular-nums">
+                          {formatHours(monthExtrasEFaltas.grossExtraMinutes)}
+                        </p>
+                        <p className="text-orange-800/70 text-[11px] mt-1 leading-snug">
+                          Trabalhado efetivo + PTO − horas esperadas (referência − dia sem ponto),
+                          somando as quinzenas.
+                        </p>
+                      </div>
+                      <div className="rounded-lg bg-amber-50/90 border border-amber-100 px-3 py-2.5">
+                        <p className="text-amber-900/80 text-xs leading-snug">
+                          Horas faltantes
+                        </p>
+                        <p className="font-semibold text-amber-950 tabular-nums">
+                          {formatHours(monthExtrasEFaltas.missingMinutes)}
+                        </p>
+                        <p className="text-amber-900/70 text-[11px] mt-1 leading-snug">
+                          Dia útil sem ponto ou tempo abaixo da jornada prevista; abatem das extras
+                          brutas no salário.
+                        </p>
+                      </div>
                     </div>
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
                       <div className="rounded-lg bg-emerald-50/90 border border-emerald-100 px-3 py-2.5">
