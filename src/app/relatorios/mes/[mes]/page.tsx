@@ -20,7 +20,11 @@ import { getWorkDaysInMonth, getMonthClosure } from "@/lib/firestore";
 import { CloseMonthButton } from "@/components/CloseMonthButton";
 import { PdfExportButton } from "@/components/PdfExportButton";
 import { FortnightPaySection } from "@/components/FortnightPaySection";
-import { buildMonthFortnightBreakdowns, asOfDateForReportMonth } from "@/lib/fortnightEarnings";
+import {
+  buildMonthFortnightBreakdowns,
+  asOfDateForReportMonth,
+  todayYmdLocal,
+} from "@/lib/fortnightEarnings";
 import type { WorkDay } from "@/types";
 
 function formatDayDate(dateStr: string): string {
@@ -38,6 +42,7 @@ type DayEntry =
 
 function buildAllDayEntries(workDays: WorkDay[], validMes: string): DayEntry[] {
   const asOf = asOfDateForReportMonth(validMes);
+  const todayYmd = todayYmdLocal();
   const [y, m] = validMes.split("-").map(Number);
   const lastDay = new Date(y, m, 0).getDate();
 
@@ -63,7 +68,10 @@ function buildAllDayEntries(workDays: WorkDay[], validMes: string): DayEntry[] {
         entries.push({ type: "worked", workDay: wd, date: dateStr });
       }
     } else if (isWorkingDay) {
-      entries.push({ type: "absent", date: dateStr });
+      // Dia em andamento: não exibir como falta até após a meia-noite
+      if (dateStr !== todayYmd) {
+        entries.push({ type: "absent", date: dateStr });
+      }
     }
   }
 

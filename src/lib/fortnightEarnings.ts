@@ -59,7 +59,8 @@ function lastDayOfMonth(year: number, monthIndex0: number): number {
   return new Date(year, monthIndex0 + 1, 0).getDate();
 }
 
-function localTodayYmd(): string {
+/** Data de hoje no fuso local (YYYY-MM-DD). */
+export function todayYmdLocal(): string {
   const d = new Date();
   const y = d.getFullYear();
   const m = String(d.getMonth() + 1).padStart(2, "0");
@@ -78,7 +79,7 @@ function lastDayOfMonthYmd(monthKey: string): string {
  * mês atual ou futuro = hoje (dias posteriores ainda não entram na obrigação).
  */
 export function asOfDateForReportMonth(monthKey: string): string {
-  const today = localTodayYmd();
+  const today = todayYmdLocal();
   const curMonth = today.slice(0, 7);
   if (monthKey < curMonth) {
     return lastDayOfMonthYmd(monthKey);
@@ -128,6 +129,7 @@ export function buildFortnightBreakdown(
   asOfDate?: string
 ): FortnightPayBreakdown {
   const asOf = asOfDate ?? asOfDateForReportMonth(validMes);
+  const todayStr = todayYmdLocal();
   const daysInFortnight = workDays.filter(
     (wd) => fortnightFromDate(wd.date) === fortnight
   );
@@ -154,16 +156,22 @@ export function buildFortnightBreakdown(
     const wd = byDate.get(dateStr);
     const isHoliday = wd?.holiday === true;
     const worked = wd ? effectiveWorkedMinutes(wd) : 0;
+    /** Só a partir do dia seguinte: o dia civil em curso não gera "falta" nem falta de dia inteiro. */
+    const isOngoingCalendarDay = dateStr === todayStr;
     if (isHoliday) {
       // Feriado: PTO cobre a diferença entre o que foi trabalhado e a jornada esperada
       const ptoDiff = Math.max(0, exp - worked);
       ptoMinutes += ptoDiff;
       if (ptoDiff > 0) ptoCount += 1;
     } else if (worked === 0) {
-      missingMinutes += exp;
-      fullDayMissingMinutes += exp;
+      if (!isOngoingCalendarDay) {
+        missingMinutes += exp;
+        fullDayMissingMinutes += exp;
+      }
     } else {
-      missingMinutes += Math.max(0, exp - worked);
+      if (!isOngoingCalendarDay) {
+        missingMinutes += Math.max(0, exp - worked);
+      }
     }
   }
 
