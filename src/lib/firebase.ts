@@ -23,12 +23,23 @@ let db: Firestore | null = null;
 let analytics: Analytics | null = null;
 
 if (typeof window !== "undefined" && hasValidConfig) {
-  const firebaseApp =
-    getApps().length === 0 ? initializeApp(firebaseConfig) : (getApps()[0] as FirebaseApp);
-  app = firebaseApp;
-  auth = getAuth(firebaseApp);
-  db = getFirestore(firebaseApp);
-  analytics = getAnalytics(firebaseApp);
+  try {
+    const firebaseApp =
+      getApps().length === 0
+        ? initializeApp(firebaseConfig)
+        : (getApps()[0] as FirebaseApp);
+    app = firebaseApp;
+    auth = getAuth(firebaseApp);
+    db = getFirestore(firebaseApp);
+    try {
+      analytics = getAnalytics(firebaseApp);
+    } catch {
+      // Analytics exige browser suportado / appId+measurement; não quebra o resto do app
+      analytics = null;
+    }
+  } catch (e) {
+    console.warn("Firebase: erro ao inicializar no cliente", e);
+  }
 }
 
 export { app, auth, db, analytics };
