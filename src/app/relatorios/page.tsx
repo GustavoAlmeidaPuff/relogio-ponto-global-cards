@@ -53,8 +53,14 @@ export default function RelatoriosPage() {
     }
     setMonthsListLoading(true);
     getMonthsWithWorkRecords(user.uid)
-      .then(setMonthsWithRecords)
-      .catch(() => setMonthsWithRecords([]))
+      .then((months) => {
+        if (!months.includes(currentMonth)) {
+          setMonthsWithRecords([currentMonth, ...months]);
+        } else {
+          setMonthsWithRecords(months);
+        }
+      })
+      .catch(() => setMonthsWithRecords([currentMonth]))
       .finally(() => setMonthsListLoading(false));
   }, [user?.uid]);
 

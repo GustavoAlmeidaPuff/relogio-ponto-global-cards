@@ -317,11 +317,12 @@ export async function getWorkDaysInMonth(
   return inRange;
 }
 
-/** Dia conta como “com registro” se há batida completa ou tempo trabalhado salvo. */
+/** Dia conta como “com registro” se é feriado, tem batida (aberta ou completa), ou tempo trabalhado salvo. */
 export function workDayHasTimeRegistration(w: WorkDay): boolean {
-  if (typeof w.totalWorkedMs === "number" && w.totalWorkedMs > 0) return true;
+  if (w.holiday) return true;
+  if (typeof w.totalWorkedMs === “number” && w.totalWorkedMs > 0) return true;
   const punches = w.punches || [];
-  return punches.some((p) => p.entry != null && p.exit != null);
+  return punches.some((p) => p.entry != null);
 }
 
 /**
