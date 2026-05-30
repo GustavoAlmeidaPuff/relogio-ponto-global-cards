@@ -317,6 +317,20 @@ export async function getWorkDaysInMonth(
   return inRange;
 }
 
+export async function getWorkDaysInRange(
+  userId: string,
+  startDate: string,
+  endDate: string
+): Promise<WorkDay[]> {
+  const col = collection(getDb(), WORK_DAYS);
+  const q = query(col, where("userId", "==", userId));
+  const snapshot = await withRetry(() => getDocs(q));
+  const all = snapshot.docs.map((d) => ({ id: d.id, ...d.data() } as WorkDay));
+  const inRange = all.filter((w) => w.date >= startDate && w.date <= endDate);
+  inRange.sort((a, b) => a.date.localeCompare(b.date));
+  return inRange;
+}
+
 /** Dia conta como "com registro" se é feriado, tem batida (aberta ou completa), ou tempo trabalhado salvo. */
 export function workDayHasTimeRegistration(w: WorkDay): boolean {
   if (w.holiday) return true;
