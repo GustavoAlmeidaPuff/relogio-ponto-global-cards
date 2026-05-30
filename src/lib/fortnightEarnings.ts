@@ -221,6 +221,143 @@ export function buildFortnightBreakdown(
   };
 }
 
+export interface RangePayBreakdown {
+  startDate: string;
+  endDate: string;
+  daysWithRecords: number;
+  ptoCount: number;
+  ptoMinutes: number;
+  referenceNormalMinutes: number;
+  referenceNormalValue: number;
+  fullDayMissingMinutes: number;
+  expectedEffectiveMinutes: number;
+  missingMinutes: number;
+  discountValue: number;
+  totalMinutes: number;
+  effectiveTotalMinutes: number;
+  grossExtraMinutes: number;
+  formattedExtraMinutes: number;
+  formattedExtraValue: number;
+  clockNormalMinutes: number;
+  clockNormalValue: number;
+  totalValue: number;
+}
+
+function datesBetween(startDate: string, endDate: string): string[] {
+  const out: string[] = [];
+  if (startDate > endDate) return out;
+  const [sy, sm, sd] = startDate.split("-").map(Number);
+  const [ey, em, ed] = endDate.split("-").map(Number);
+  const cur = new Date(sy, sm - 1, sd);
+  const end = new Date(ey, em - 1, ed);
+  while (cur <= end) {
+    const y = cur.getFullYear();
+    const m = String(cur.getMonth() + 1).padStart(2, "0");
+    const d = String(cur.getDate()).padStart(2, "0");
+    out.push(`${y}-${m}-${d}`);
+    cur.setDate(cur.getDate() + 1);
+  }
+  return out;
+}
+
+/**
+ * Mesma regra de cálculo da quinzena, mas para um intervalo arbitrário [start, end].
+ * `asOfDate` (default = hoje) limita a contagem de faltas: dias futuros não contam.
+ */
+export function buildRangeBreakdown(
+  workDays: WorkDay[],
+  startDate: string,
+  endDate: string,
+  asOfDate?: string
+): RangePayBreakdown {
+  const asOf = asOfDate ?? todayYmdLocal();
+  const todayStr = todayYmdLocal();
+  const daysInRange = workDays.filter(
+    (wd) => wd.date >= startDate && wd.date <= endDate
+  );
+  const daysWithWorkedTime = daysInRange.filter(
+    (wd) => effectiveWorkedMinutes(wd) > 0 || wd.holiday === true
+  );
+  const n = daysWithWorkedTime.length;
+  const totalMinutes = daysInRange.reduce(
+    (acc, wd) => acc + effectiveWorkedMinutes(wd),
+    0
+  );
+
+  const byDate = new Map(daysInRange.map((wd) => [wd.date, wd]));
+  let referenceNormalMinutes = 0;
+  let missingMinutes = 0;
+  let fullDayMissingMinutes = 0;
+  let ptoMinutes = 0;
+  let ptoCount = 0;
+  for (const dateStr of datesBetween(startDate, endDate)) {
+    if (dateStr > asOf) continue;
+    const exp = expectedMinutesForDate(dateStr);
+    if (exp === 0) continue;
+    referenceNormalMinutes += exp;
+    const wd = byDate.get(dateStr);
+    const isHoliday = wd?.holiday === true;
+    const worked = wd ? effectiveWorkedMinutes(wd) : 0;
+    const isOngoingCalendarDay = dateStr === todayStr;
+    if (isHoliday) {
+      const ptoDiff = Math.max(0, exp - worked);
+      ptoMinutes += ptoDiff;
+      if (ptoDiff > 0) ptoCount += 1;
+    } else if (worked === 0) {
+      if (!isOngoingCalendarDay) {
+        missingMinutes += exp;
+        fullDayMissingMinutes += exp;
+      }
+    } else {
+      if (!isOngoingCalendarDay) {
+        missingMinutes += Math.max(0, exp - worked);
+      }
+    }
+  }
+
+  const effectiveTotalMinutes = totalMinutes + ptoMinutes;
+  const expectedEffectiveMinutes = Math.max(
+    0,
+    referenceNormalMinutes - fullDayMissingMinutes
+  );
+  const grossExtraMinutes = Math.max(
+    0,
+    effectiveTotalMinutes - expectedEffectiveMinutes
+  );
+  const clockNormalMinutes = effectiveTotalMinutes - grossExtraMinutes;
+  const formattedExtraMinutes = Math.max(0, grossExtraMinutes - missingMinutes);
+
+  const referenceNormalValue =
+    (referenceNormalMinutes / 60) * REAIS_POR_HORA_NORMAL;
+  const discountValue = (missingMinutes / 60) * REAIS_POR_HORA_NORMAL;
+  const clockNormalValue = (clockNormalMinutes / 60) * REAIS_POR_HORA_NORMAL;
+  const formattedExtraValue =
+    (formattedExtraMinutes / 60) * REAIS_POR_HORA_EXTRA;
+  const totalValue = clockNormalValue + formattedExtraValue;
+
+  return {
+    startDate,
+    endDate,
+    daysWithRecords: n,
+    ptoCount,
+    ptoMinutes,
+    referenceNormalMinutes,
+    referenceNormalValue,
+    fullDayMissingMinutes,
+    expectedEffectiveMinutes,
+    missingMinutes,
+    discountValue,
+    totalMinutes,
+    effectiveTotalMinutes,
+    grossExtraMinutes,
+    formattedExtraMinutes,
+    formattedExtraValue,
+    clockNormalMinutes,
+    clockNormalValue,
+    totalValue,
+  };
+}
+
 export function buildMonthFortnightBreakdowns(
   workDays: WorkDay[],
   validMes: string,
