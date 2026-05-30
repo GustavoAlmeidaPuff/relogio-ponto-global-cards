@@ -98,6 +98,19 @@ export default function RelatoriosPage() {
         </div>
       </header>
       <main className="max-w-3xl mx-auto p-4 sm:p-6">
+        <Link
+          href="/relatorios/personalizado"
+          className="block mb-5 p-4 sm:p-5 rounded-xl border-2 border-dashed border-blue-200 bg-blue-50/40 hover:border-blue-400 hover:bg-blue-50 transition"
+        >
+          <span className="block font-semibold text-blue-800">
+            Período personalizado
+          </span>
+          <p className="text-blue-700/80 text-sm mt-1">
+            Escolha uma data inicial e final para ver horas, extras e valor no
+            intervalo →
+          </p>
+        </Link>
+
         <h2 className="text-xl font-semibold text-slate-800 mb-2">
           Histórico do mês
         </h2>
